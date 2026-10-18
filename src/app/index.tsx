@@ -1,57 +1,17 @@
-import { useRouter } from 'expo-router';
-import { Pressable, StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Redirect } from 'expo-router';
+import { useEffect, useState } from 'react';
 
-import { AnimatedIcon } from '@/components/animated-icon';
-import { ThemedText } from '@/components/themed-text';
-import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
+import { hasSeenOnboarding } from '@/features/onboarding/onboardingStorage';
 
-export default function HomeScreen() {
-  const router = useRouter();
+export default function Index() {
+  const [seen, setSeen] = useState<boolean | null>(null);
 
-  return (
-    <Pressable style={styles.container} onPress={() => router.push('/test')}>
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            RoutineSlim
-          </ThemedText>
-          <ThemedText style={styles.team}>코리아IT아카데미 1조</ThemedText>
-        </View>
-      </SafeAreaView>
-    </Pressable>
-  );
+  useEffect(() => {
+    hasSeenOnboarding().then(setSeen);
+  }, []);
+
+  // 저장소를 읽는 동안은 아무것도 그리지 않는다 (아주 짧은 순간)
+  if (seen === null) return null;
+
+  return <Redirect href={seen ? '/login' : '/onboarding'} />;
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    flexDirection: 'row',
-    backgroundColor: '#ffffff',
-  },
-  safeArea: {
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    alignItems: 'center',
-    maxWidth: MaxContentWidth,
-  },
-  heroSection: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
-    gap: Spacing.three,
-  },
-  title: {
-    textAlign: 'center',
-    color: Colors.light.text,
-  },
-  team: {
-    fontSize: 24,
-    lineHeight: 32,
-    fontWeight: 600,
-    textAlign: 'center',
-    color: Colors.light.textSecondary,
-  },
-});
