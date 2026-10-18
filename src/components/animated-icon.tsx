@@ -1,4 +1,6 @@
 import { Image } from 'expo-image';
+
+import LogoMark from '@/assets/images/logo-mark.svg';
 import * as SplashScreen from 'expo-splash-screen';
 import { useState } from 'react';
 import { Dimensions, StyleSheet, View } from 'react-native';
@@ -33,7 +35,7 @@ export function AnimatedSplashOverlay() {
     },
   });
 
-  const image = <Image style={styles.image} source={require('@/assets/images/logo-mark.svg')} />;
+  const image = <LogoMark width={styles.image.width} height={styles.image.height} />;
 
   return animate ? (
     <Animated.View
@@ -108,7 +110,7 @@ export function AnimatedIcon() {
 
       <Animated.View entering={keyframe.duration(DURATION)} style={styles.background} />
       <Animated.View style={styles.imageContainer} entering={logoKeyframe.duration(DURATION)}>
-        <Image style={styles.image} source={require('@/assets/images/logo-mark.svg')} />
+        <LogoMark width={styles.image.width} height={styles.image.height} />
       </Animated.View>
     </View>
   );
