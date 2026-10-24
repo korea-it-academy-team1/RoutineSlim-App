@@ -56,6 +56,7 @@ export const colors = {
   illustDecor: '#D9DAF7',
   illustDecorStrong: 'rgba(91, 91, 214, 0.35)',
   illustScanGlow: 'rgba(91, 91, 214, 0.1)',
+  receiptLine: '#C9C9F1',
   pageDotInactive: '#D5D8E8',
   savingBadge: '#BFF5D8',
   savingBadgeText: '#0B6B43',

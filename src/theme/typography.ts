@@ -30,6 +30,8 @@ export const typography = {
   bodyRegular: { fontSize: 13, fontWeight: '400', lineHeight: 19 },
   formInput: { fontSize: 14, fontWeight: '400', lineHeight: 20 },
   chip: { fontSize: 9.5, fontWeight: '700', lineHeight: 12 },
+  introTitle: { fontSize: 25, fontWeight: '700', lineHeight: 36 },
+  uploadTitle: { fontSize: 16, fontWeight: '700', lineHeight: 23 },
 
   // 사용량 점검 계열 — line-height 1.4
   headline: { fontSize: 22, fontWeight: '700', lineHeight: 30 },

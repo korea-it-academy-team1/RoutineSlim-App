@@ -1,5 +1,13 @@
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, type PressableProps, type StyleProp, type ViewStyle } from 'react-native';
+import {
+  Pressable,
+  StyleSheet,
+  Text,
+  type PressableProps,
+  type StyleProp,
+  type TextStyle,
+  type ViewStyle,
+} from 'react-native';
 
 import { colors, radius, typography } from '@/theme';
 
@@ -14,6 +22,7 @@ type ButtonProps = Omit<PressableProps, 'style'> & {
   /** secondary: 연보라 배경의 보조 버튼 */
   variant?: 'primary' | 'secondary';
   style?: StyleProp<ViewStyle>;
+  titleStyle?: StyleProp<TextStyle>;
 };
 
 export function Button({
@@ -24,6 +33,7 @@ export function Button({
   variant = 'primary',
   disabled,
   style,
+  titleStyle,
   ...rest
 }: ButtonProps) {
   const secondary = variant === 'secondary';
@@ -43,7 +53,9 @@ export function Button({
       {...rest}
     >
       {icon}
-      <Text style={[styles.title, size === 'md' && styles.titleMd, secondary && styles.titleSecondary]}>{title}</Text>
+      <Text style={[styles.title, size === 'md' && styles.titleMd, secondary && styles.titleSecondary, titleStyle]}>
+        {title}
+      </Text>
       {trailingIcon}
     </Pressable>
   );
