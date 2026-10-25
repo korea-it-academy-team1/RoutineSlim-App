@@ -1,0 +1,15 @@
+# 로컬 개발: 설치 없이 바로 실행되는 H2 파일 DB (backend/data/, git 에는 올리지 않음)
+spring:
+  datasource:
+    url: jdbc:h2:file:./data/routineslim;MODE=MySQL;DATABASE_TO_LOWER=TRUE
+    username: sa
+    password:
+  h2:
+    console:
+      # http://localhost:8080/h2-console (JDBC URL 은 위 url 그대로)
+      enabled: true
+  jpa:
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true

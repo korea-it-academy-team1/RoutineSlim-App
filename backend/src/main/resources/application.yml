@@ -1,0 +1,23 @@
+# 공통 설정. 환경별 값은 application-{local,prod}.yml, 비밀 값은 환경 변수로 넣는다.
+spring:
+  application:
+    name: routineslim
+  profiles:
+    # 아무것도 지정하지 않으면 local (H2 파일 DB)
+    active: ${SPRING_PROFILES_ACTIVE:local}
+  jpa:
+    open-in-view: false
+    hibernate:
+      # 테이블은 Flyway(db/migration)로만 만들고, JPA 는 엔티티와 테이블이 맞는지 검사만 한다
+      ddl-auto: validate
+  flyway:
+    locations: classpath:db/migration
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
