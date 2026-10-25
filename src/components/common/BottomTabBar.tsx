@@ -7,7 +7,7 @@ import { colors, typography } from '@/theme';
 // expo-router 버전마다 탭 바 props 타입의 export 위치가 달라 Tabs 의 tabBar prop 에서 꺼내 쓴다
 type BottomTabBarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>['tabBar']>>[0];
 
-export function BottomTabBar({ state, descriptors, navigation, insets }: BottomTabBarProps) {
+export function BottomTabBar({ state, descriptors, emitter, navigateToTab, insets }: BottomTabBarProps) {
   return (
     <View style={[styles.container, { paddingBottom: insets.bottom }]}>
       {state.routes.map((route, index) => {
@@ -16,9 +16,9 @@ export function BottomTabBar({ state, descriptors, navigation, insets }: BottomT
         const label = typeof options.title === 'string' ? options.title : route.name;
 
         const onPress = () => {
-          const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
+          const event = emitter.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
           if (!focused && !event.defaultPrevented) {
-            navigation.navigate(route.name, route.params);
+            navigateToTab(route.key);
           }
         };
 
