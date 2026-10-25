@@ -8,6 +8,7 @@ import {
   View,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
+  type ScrollViewInstance,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -69,7 +70,7 @@ type OnboardingScreenProps = {
 
 export function OnboardingScreen({ initialPage = 0, onFinish, onPressLanguage }: OnboardingScreenProps) {
   const { width } = useWindowDimensions();
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ScrollViewInstance>(null);
   const [page, setPage] = useState(() => Math.min(Math.max(initialPage, 0), PAGES.length - 1));
 
   // 시작 페이지로 이동 (화면 폭이 바뀌어도 현재 페이지 유지)
