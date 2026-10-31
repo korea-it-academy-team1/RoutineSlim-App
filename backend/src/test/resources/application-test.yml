@@ -1,0 +1,6 @@
+# 테스트: 실행할 때마다 새로 만드는 메모리 DB
+spring:
+  datasource:
+    url: jdbc:h2:mem:routineslim;MODE=MySQL;DATABASE_TO_LOWER=TRUE
+    username: sa
+    password:

@@ -1,8 +1,8 @@
-# RoutineSlim
+# RoutineSlim — frontend (앱)
 
-코리아IT아카데미 1조 팀 프로젝트입니다.
+RoutineSlim 의 모바일 앱입니다. 프로젝트 소개는 [저장소 README](../README.md)를 참고하세요.
 
-까먹은 정기구독이나 고정비를 등록하여 지출을 줄이게 관리해 주는 앱입니다.
+아래 명령은 모두 이 `frontend` 폴더에서 실행합니다.
 
 ## 기술 스택
 
