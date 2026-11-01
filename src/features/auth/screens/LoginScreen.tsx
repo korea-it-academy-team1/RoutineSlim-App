@@ -14,32 +14,17 @@ import { BiometricLoginCard } from '../components/BiometricLoginCard';
 import { LoginHero } from '../components/LoginHero';
 import { SocialLoginButtons, type SocialProvider } from '../components/SocialLoginButtons';
 
-/*
- * [로그인 구현 6/9] 로그인 화면에 "실패 안내" 와 "요청 중" 표시 추가
- *
- * 이 파일은 화면 모양만 담당한다. 서버 호출은 하지 않고, 값은 props 로 받는다.
- * 실제 로그인 처리는 7번 src/app/(auth)/login.tsx 가 하고 결과를 아래 props 로 내려 준다.
- *
- * 할 일
- *   1) LoginScreenProps 에 두 개 추가
- *        errorMessage?: string | null;   // 로그인 실패 안내 문구. 없으면 안내를 그리지 않음
- *        submitting?: boolean;           // 로그인 요청 중이면 true (기본값 false)
- *      그리고 함수 매개변수 구조 분해에도 errorMessage, submitting = false 추가
- *   2) 로그인 버튼 바로 위에 errorMessage 가 있을 때만 <Text> 로 표시 (아래 버튼 위치 주석 참고)
- *        - 접근성: accessibilityRole="alert" (화면 읽기 프로그램이 바로 읽어 줌)
- *        - 스타일은 styles 에 error 를 추가: ...typography.caption, color: colors.danger,
- *          marginTop: spacing.md  (색·글자·간격은 하드코딩하지 말고 theme 토큰을 쓴다)
- *   3) 로그인 버튼
- *        - submitting 이면 title 을 '로그인 중…' 으로, disabled={submitting} 으로 두 번 누르기 방지
- *          (Button 컴포넌트는 disabled 를 이미 지원한다: src/components/ui/Button.tsx)
- *        - onLogin 에 넘기는 id 는 앞뒤 공백 제거: id.trim()  (비밀번호는 그대로)
- */
+
+
 type LoginScreenProps = {
   onLogin?: (credentials: { id: string; password: string; keepLoggedIn: boolean }) => void;
   onSocialLogin?: (provider: SocialProvider) => void;
   onBiometricLogin?: () => void;
   onResetPassword?: () => void;
   onSignUp?: () => void;
+  
+  errorMessage?: string | null;
+  submitting?: boolean;
 };
 
 export function LoginScreen({
@@ -48,6 +33,8 @@ export function LoginScreen({
   onBiometricLogin,
   onResetPassword,
   onSignUp,
+  errorMessage,
+  submitting = false
 }: LoginScreenProps) {
   const [id, setId] = useState('');
   const [password, setPassword] = useState('');
@@ -98,8 +85,18 @@ export function LoginScreen({
           </Pressable>
         </View>
 
-        {/* [로그인 구현 6/9] 여기에 errorMessage 안내 <Text> 추가, 아래 버튼에 submitting 반영 */}
-        <Button title="로그인" style={styles.loginButton} onPress={() => onLogin?.({ id, password, keepLoggedIn })} />
+        {errorMessage ? (
+          <Text style={styles.error} accessibilityRole="alert">
+            {errorMessage}
+          </Text>
+        ) : null}
+
+        <Button
+          title={submitting ? '로그인 중...' : '로그인'}
+          style={styles.loginButton}
+          disabled={submitting}
+          onPress={() => onLogin?.({ id: id.trim(), password, keepLoggedIn })}
+        />
 
         <View style={styles.divider}>
           <View style={styles.dividerLine} />
@@ -148,6 +145,11 @@ const styles = StyleSheet.create({
   resetPassword: {
     ...typography.caption,
     color: colors.textMuted,
+  },
+  error: {
+    ...typography.caption,
+    color: colors.danger,
+    marginTop: spacing.sm,
   },
   loginButton: {
     marginTop: spacing.lg,
