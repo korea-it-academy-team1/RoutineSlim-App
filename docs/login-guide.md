@@ -3,21 +3,24 @@
 각 파일 맨 위의 `[로그인 구현 N/9]` 주석에 할 일이 자세히 적혀 있다. **번호 순서대로** 구현한다
 (뒤 번호가 앞 번호의 함수를 import 한다). 구현하면서 주석은 필요한 만큼 남기고, 새 파일의 `export {};` 줄은 지운다.
 
+> **진행 상황**: 1~4번(서버 통신 + 로그인 상태)은 구현돼 있다. 화면 연결(6 → 7 → 9 → 8)부터 하고, 5번은 로그인이 필요한 API 를 처음 부를 때 만든다.
+> 1~4번 사용법은 각 파일 맨 위 주석과 `authStore.ts` 의 "화면 연결" 설명을 본다.
+
 ## 파일 목록
 
 | 순서 | 파일 | 상태 | 할 일 |
 |---|---|---|---|
-| 1 | `src/api/client.ts` | 새 파일(주석만) | 서버 주소 `API_URL`, 오류 클래스 `ApiError`, 공통 호출 함수 `request()` |
-| 2 | `src/features/auth/api/authApi.ts` | 새 파일(주석만) | `login`, `refresh`, `logout` API 함수와 `AuthTokens`, `LoginCredentials` 타입 |
-| 3 | `src/features/auth/tokenStorage.ts` | 새 파일(주석만) | refresh token 저장·읽기·삭제 (폰: SecureStore, 웹: AsyncStorage) |
-| 4 | `src/features/auth/authStore.ts` | 새 파일(주석만) | zustand 로그인 상태: `signIn`, `signOut`, `restore`, `refreshAccessToken` |
+| 1 | `src/api/client.ts` | ✅ 구현됨 | 서버 주소 `API_URL`, 오류 클래스 `ApiError`, 공통 호출 함수 `request()` |
+| 2 | `src/features/auth/api/authApi.ts` | ✅ 구현됨 | `login`, `refresh`, `logout` API 함수와 `AuthTokens`, `LoginCredentials` 타입 |
+| 3 | `src/features/auth/tokenStorage.ts` | ✅ 구현됨 | refresh token 저장·읽기·삭제 (폰: SecureStore, 웹: AsyncStorage) |
+| 4 | `src/features/auth/authStore.ts` | ✅ 구현됨 | zustand 로그인 상태: `signIn`, `signOut`, `restore`, `refreshAccessToken` |
 | 5 | `src/features/auth/authorizedRequest.ts` | 새 파일(주석만) | 토큰을 붙이고, 401 이면 한 번 재발급 후 다시 보내는 함수 |
 | 6 | `src/features/auth/screens/LoginScreen.tsx` | 기존 화면 + 주석 | `errorMessage`, `submitting` props 와 실패 안내 표시 |
 | 7 | `src/app/(auth)/login.tsx` | 기존 라우트 + 주석 | 로그인 버튼 → `signIn` → 성공 시 홈, 실패 시 안내 |
 | 8 | `src/app/index.tsx` | 기존 라우트 + 주석 | 앱 시작 시 `restore()` 로 자동 로그인 |
 | 9 | `src/app/(tabs)/my.tsx` | 기존 라우트 + 주석 | 로그아웃 버튼 → `signOut` |
 | - | `.env.example` | 설정 예시 | `.env.local` 로 복사해 서버 주소(`EXPO_PUBLIC_API_URL`) 지정 |
-| - | `package.json`, `app.json` | 3번에서 수정 | `npx expo install expo-secure-store` + app.json plugins 에 추가 |
+| - | `package.json`, `app.json` | ✅ 반영됨 | `expo-secure-store` 설치 + app.json plugins 추가 완료 (pull 후 `npm install`) |
 
 ## 시작 전 준비
 
