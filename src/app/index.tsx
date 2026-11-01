@@ -16,10 +16,12 @@ import { hasSeenOnboarding } from '@/features/onboarding/onboardingStorage';
  *
  * 2) useEffect 안에서 hasSeenOnboarding() 과 함께 restore() 도 호출
  *      - 의존성 배열은 [restore]   (restore 는 바뀌지 않는 함수라 한 번만 실행된다)
- *      - restore 는 저장된 refresh token 으로 새 토큰을 받아 status 를 signedIn / signedOut 으로 바꾼다
+ *      - restore 는 저장된 로그인 정보를 읽어 status 를 signedIn / signedOut 으로 바꾼다
+ *        ([로그인 - 이대수] 1번 방식: 저장된 회원 UUID 를 읽기만 함 / JWT: 저장된 refresh token 으로 새 토큰을 받음.
+ *         어느 방식이든 이 파일의 코드는 같다)
  *
  * 3) 기다리기: seen === null 이거나 authStatus === 'unknown' 이면 return null
- *      (저장소 읽기 + 서버 재발급이 끝날 때까지. 보통 아주 짧다)
+ *      (저장소 읽기(JWT 는 + 서버 재발급)가 끝날 때까지. 보통 아주 짧다)
  *
  * 4) 이동
  *      - 소개를 안 봤으면 → '/onboarding'

@@ -1,6 +1,8 @@
 /*
  * [로그인 구현 1/9] 서버(RoutineSlim-Server) 호출 공통 함수
  *
+ * [로그인 - 이대수] 지금은 1번 방식(회원 UUID 를 X-Member-Id 헤더로 보냄). JWT(3번)로 바꾸는 방법은 docs/jwt-switch-guide.md
+ *
  * 로그인뿐 아니라 앞으로 모든 API 호출이 함께 쓰는 "fetch 감싸기" 이다.
  * authApi.ts(2번), authorizedRequest.ts(5번)가 여기 request() 를 쓴다.
  * 전체 순서와 파일 목록은 docs/login-guide.md
@@ -58,19 +60,30 @@ export type RequestOptions = {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   /** 객체를 넘기면 JSON 으로 보낸다 */
   body?: unknown;
-  /** access token. 있으면 Authorization 헤더로 보낸다 (로그인이 필요한 API) */
-  token?: string;
+
+  // [1번 임시 - 이대수] 로그인한 회원 UUID. 있으면 X-Member-Id 헤더로 보낸다 (로그인이 필요한 API)
+  memberId?: string;
+
+//  // [JWT 로그인 - 이대수] access token. 있으면 Authorization 헤더로 보낸다 (로그인이 필요한 API)
+//  token?: string;
 };
 
 /**
  * 서버 API 호출. 성공하면 응답 본문(JSON)을 T 로 돌려주고, 실패하면 ApiError 를 throw 한다.
  * 이 서버는 응답을 { success, data } 같은 껍데기로 감싸지 않고 DTO 를 그대로 돌려준다.
  */
-export async function request<T>(path: string, { method = 'GET', body, token }: RequestOptions = {}): Promise<T> {
-  // (1) 헤더: body 가 있을 때만 Content-Type, 토큰이 있을 때만 Authorization ("Bearer " 뒤 공백 한 칸)
+export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  const { method = 'GET', body } = options;
+
+  // (1) 헤더: body 가 있을 때만 Content-Type
   const headers: Record<string, string> = { Accept: 'application/json' };
   if (body !== undefined) headers['Content-Type'] = 'application/json';
-  if (token) headers.Authorization = `Bearer ${token}`;
+
+  // [1번 임시 - 이대수] 회원 UUID 가 있을 때만 X-Member-Id
+  if (options.memberId) headers['X-Member-Id'] = options.memberId;
+
+//  // [JWT 로그인 - 이대수] 토큰이 있을 때만 Authorization ("Bearer " 뒤 공백 한 칸)
+//  if (options.token) headers.Authorization = `Bearer ${options.token}`;
 
   // (2) 요청. fetch 자체가 실패하면 서버 꺼짐 / 주소 틀림 / 네트워크 문제
   let response: Response;
