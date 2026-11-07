@@ -34,4 +34,97 @@
  */
 
 // 아직 구현 전. 구현하면 이 줄은 지운다
-export {};
+import ICloudPlusLogo from '@/assets/logos/iCloudPlus.svg';
+import ICloudPlusLogoLarge from '@/assets/logos/iCloudPlusLarge.svg';
+import SpotifyLogo from '@/assets/logos/spotify.svg';
+
+import { Colors } from '@/constants/theme';
+import type { ServiceLogo } from './types';
+
+export type ServiceBrand = {
+     logo: ServiceLogo;
+     accent: {
+         color: string;
+         soft: string
+        }
+    };
+
+export const SERVICE_BRANDS: Record<string, ServiceBrand> = {
+    '넷플릭스': {
+        logo: {
+            kind: 'text',
+            text: 'N',
+            color: '#E50914',
+            fontSize: 16.56,
+            background: '#151515'
+        },
+        accent: {
+            color: '#E50914',
+            soft: '#FDEBEC'
+        },
+    },
+    '디즈니+': {
+        logo: {
+            kind: 'text',
+            text: 'D',
+            color: '#113CCF',
+            fontSize: 16.56,
+            background: '#151515'
+        },
+        accent: {
+            color: '#113CCF',
+            soft: '#E6E9FF'
+        },
+    },
+    'YouTube Premium': {
+        logo: {
+            kind: 'text',
+            text: 'Y',
+            color: '#FF0000',
+            fontSize: 16.56,
+            background: '#151515'
+        },
+        accent: {
+            color: '#FF0000',
+            soft: '#FFE6E6'
+        },
+    },
+    '스포티파이': {
+        logo: {
+            kind: 'icon',
+            Icon: SpotifyLogo,
+            size: 24,
+            background: '#1DB954'
+        },
+        accent: {
+            color: '#1DB954',
+            soft: '#E6F7EC'
+        },
+    },
+    'iCloud+': {
+        logo: {
+            kind: 'icon',
+            Icon: ICloudPlusLogo,
+            size: 24,
+            background: '#0A84FF',
+            large: { Icon: ICloudPlusLogoLarge, size: 42 }
+        },
+        accent: {
+            color: '#0A84FF',
+            soft: '#E6F0FF'
+        },
+    },
+    '쿠팡 와우': {
+        logo: {
+            kind: 'text',
+            text: 'C',
+            color: '#FF0000',
+            fontSize: 16.56,
+            background: '#151515'
+        },
+        accent: {
+            color: '#FF0000',
+            soft: '#FFE6E6'
+        },
+    },
+}

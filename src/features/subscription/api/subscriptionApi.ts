@@ -66,4 +66,30 @@
  */
 
 // 아직 구현 전. 구현하면 이 줄은 지운다
-export {};
+export type BillingCycleDto = 'WEEKLY' | 'MONTHLY' | 'YEARLY';
+
+export type SubscriptionStatusDto = 'TRIAL' | 'ACTIVE' | 'PAUSED' | 'CANCELED';
+
+export type SubscriptionDto = {
+  id: string;                 // UUID
+  name: string;               // 서비스 이름 (예: 넷플릭스)
+  categoryId: number;         // subscription_category 번호 (1 OTT, 2 음악, 3 클라우드, 4 쇼핑)
+  presetId: number | null;    // 프리셋에서 골랐으면 번호, 직접 입력이면 null
+  cardId: number | null;
+  amount: number;             // 1회 결제 금액 (원)
+  currency: string;           // 'KRW'
+  billingCycle: BillingCycleDto;
+  cycleInterval: number;      // 주기 배수 (3개월마다 = MONTHLY + 3)
+  monthlyAmount: number;      // 월 환산 금액 (서버가 계산). 홈 총액은 이 값의 합
+  startDate: string;          // 'YYYY-MM-DD'
+  billingDay: number;
+  nextBillingDate: string;    // 'YYYY-MM-DD'. 서버 배치가 매일 00:05 에 지난 결제일을 다음 날짜로 넘긴다
+  status: SubscriptionStatusDto;
+  trialEndDate: string | null;
+  notifyEnabled: boolean;
+  notifyDaysBefore: number | null;
+  memo: string | null;
+  canceledAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};

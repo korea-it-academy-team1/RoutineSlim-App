@@ -51,4 +51,12 @@
  */
 
 // 아직 구현 전. 구현하면 이 줄은 지운다
-export {};
+import { request } from '@/api/client';
+import { useAuthStore } from './authStore';
+
+type AuthorizedRequestOptions = Omit<NonNullable<Parameters<typeof request>[1]>, 'memberId'>;
+
+export async function authorizedRequest<T>(path: string, options: AuthorizedRequestOptions = {}): Promise<T> {
+  const { memberId } = useAuthStore.getState();
+  return request<T>(path, { ...options, memberId: memberId ?? undefined });
+}
