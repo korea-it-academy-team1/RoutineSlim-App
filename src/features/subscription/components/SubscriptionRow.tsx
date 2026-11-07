@@ -16,6 +16,7 @@ type SubscriptionRowProps = {
   onPress?: () => void;
 };
 
+// [홈 구현 4/8] types.ts 에서 cycle 에 'weekly' 를 추가하면 여기서 타입 오류가 난다 → weekly: '매주' 를 추가한다
 const CYCLE_LABEL: Record<Subscription['cycle'], string> = {
   monthly: '매월',
   yearly: '매년',
