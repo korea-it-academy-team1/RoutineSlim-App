@@ -33,10 +33,9 @@
  *   getServiceBrand('왓챠').logo.text === '왓'
  */
 
-// 아직 구현 전. 구현하면 이 줄은 지운다
-import ICloudPlusLogo from '@/assets/logos/iCloudPlus.svg';
-import ICloudPlusLogoLarge from '@/assets/logos/iCloudPlusLarge.svg';
-import SpotifyLogo from '@/assets/logos/spotify.svg';
+import ICloudLogo from '@/assets/images/service-logos/icloud.svg';
+import ICloudLogoLarge from '@/assets/images/service-logos/icloud-lg.svg';
+import SpotifyLogo from '@/assets/images/service-logos/spotify.svg';
 
 import { Colors } from '@/constants/theme';
 import type { ServiceLogo } from './types';
@@ -55,7 +54,7 @@ export const SERVICE_BRANDS: Record<string, ServiceBrand> = {
             kind: 'text',
             text: 'N',
             color: '#E50914',
-            fontSize: 16.56,
+            fontSize: 23.4,
             background: '#151515'
         },
         accent: {
@@ -66,65 +65,81 @@ export const SERVICE_BRANDS: Record<string, ServiceBrand> = {
     '디즈니+': {
         logo: {
             kind: 'text',
-            text: 'D',
-            color: '#113CCF',
+            text: 'D+',
+            color: '#FFFFFF',
             fontSize: 16.56,
-            background: '#151515'
+            background: '#132464'
         },
         accent: {
-            color: '#113CCF',
-            soft: '#E6E9FF'
+            color: '#1E3A8A',
+            soft: '#E6EBF7'
         },
     },
     'YouTube Premium': {
         logo: {
             kind: 'text',
-            text: 'Y',
-            color: '#FF0000',
+            text: '▶',
+            color: '#FFFFFF',
             fontSize: 16.56,
-            background: '#151515'
+            background: '#F04848'
         },
         accent: {
-            color: '#FF0000',
-            soft: '#FFE6E6'
+            color: '#F43F5E',
+            soft: '#FEE7EC'
         },
     },
     '스포티파이': {
         logo: {
             kind: 'icon',
             Icon: SpotifyLogo,
-            size: 24,
-            background: '#1DB954'
+            size: 22.32,
+            background: '#172B20'
         },
         accent: {
-            color: '#1DB954',
-            soft: '#E6F7EC'
+            color: '#1ED760',
+            soft: '#E3F9EC'
         },
     },
     'iCloud+': {
         logo: {
             kind: 'icon',
-            Icon: ICloudPlusLogo,
-            size: 24,
-            background: '#0A84FF',
-            large: { Icon: ICloudPlusLogoLarge, size: 42 }
+            Icon: ICloudLogo,
+            size: 22.32,
+            background: '#EDF5FF',
+            large: { Icon: ICloudLogoLarge, size: 26.04 }
         },
         accent: {
-            color: '#0A84FF',
-            soft: '#E6F0FF'
+            color: '#3B8EEA',
+            soft: '#E8F2FD'
         },
     },
     '쿠팡 와우': {
         logo: {
             kind: 'text',
             text: 'C',
-            color: '#FF0000',
+            color: '#FFFFFF',
             fontSize: 16.56,
-            background: '#151515'
+            background: '#A5AABB'
         },
         accent: {
-            color: '#FF0000',
-            soft: '#FFE6E6'
+            color: '#F59E0B',
+            soft: '#FEF3DC'
         },
     },
+}
+
+export function getServiceBrand(name: string): ServiceBrand {
+    return SERVICE_BRANDS[name] ?? {
+        logo: {
+            kind: 'text',
+            text: name.slice(0, 1),
+            color: '#FFFFFF',
+            fontSize: 16.56,
+            background: '#A5AABB'
+        },
+        accent: {
+            color: Colors.light.textSecondary,
+            soft: Colors.light.backgroundElement
+        },
+    };
 }

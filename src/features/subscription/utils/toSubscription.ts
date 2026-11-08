@@ -41,5 +41,45 @@
  *   logo 가 들어 있으면 성공.
  */
 
-// 아직 구현 전. 구현하면 이 줄은 지운다
-export {};
+import type { Subscription, SubscriptionCategory } from '../types';
+import type {
+    BillingCycleDto,
+    SubscriptionDto,
+}   from '../api/subscriptionApi';
+
+import { getServiceBrand } from '../serviceBrands';
+
+const CATEGORY_BY_ID: Record<number, SubscriptionCategory> = {
+    1: 'ott',
+    2: 'music',
+    3: 'cloud',
+    4: 'shopping',
+};
+
+const CYCLE_BY_BILLING_CYCLE: Record<
+BillingCycleDto,
+Subscription['cycle']> = {
+    WEEKLY: 'weekly',
+    MONTHLY: 'monthly',
+    YEARLY: 'yearly',
+};
+
+export function toSubscription(dto: SubscriptionDto): Subscription {
+    const category = CATEGORY_BY_ID[dto.categoryId];
+
+    if (!category) {
+        console.warn(`알 수 없는 카테고리 번호:  ${dto.categoryId}`);
+    }
+
+    return {
+        id: dto.id,
+        name: dto.name,
+        category: category ?? 'shopping', // 알 수 없는 번호면 눈에 띄게 'shopping'으로 처리
+        ...getServiceBrand(dto.name), // logo, accent
+        price: dto.amount, // 1회 결제 금액 (행에 표시)
+        monthlyPrice: dto.monthlyAmount, // 월 환산 금액 (총액 계산)
+        nextBillingDate: dto.nextBillingDate,
+        cycle: CYCLE_BY_BILLING_CYCLE[dto.billingCycle],
+        status: dto.status,
+    };
+}

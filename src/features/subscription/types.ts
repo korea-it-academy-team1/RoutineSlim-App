@@ -41,7 +41,9 @@ export type Subscription = {
   accent: { color: string; soft: string };
   logo: ServiceLogo;
   price: number;
+  monthlyPrice: number;
+  status: 'TRIAL' | 'ACTIVE' | 'PAUSED' | 'CANCELED';
   /** 다음 결제일 (YYYY-MM-DD) */
   nextBillingDate: string;
-  cycle: 'monthly' | 'yearly';
+  cycle: 'monthly' | 'yearly' | 'weekly';
 };

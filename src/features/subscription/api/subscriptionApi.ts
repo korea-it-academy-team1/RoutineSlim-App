@@ -64,8 +64,8 @@
  *   로그인 후 아무 화면에서 잠깐 console.log(await getSubscriptions()) → 배열이 찍히면 성공.
  *   빈 배열이면 Postman 등으로 POST /api/v1/subscriptions 를 몇 개 넣어 둔다.
  */
+import { authorizedRequest } from '@/features/auth/authorizedRequest';
 
-// 아직 구현 전. 구현하면 이 줄은 지운다
 export type BillingCycleDto = 'WEEKLY' | 'MONTHLY' | 'YEARLY';
 
 export type SubscriptionStatusDto = 'TRIAL' | 'ACTIVE' | 'PAUSED' | 'CANCELED';
@@ -93,3 +93,11 @@ export type SubscriptionDto = {
   createdAt: string;
   updatedAt: string;
 };
+export async function getSubscriptions(
+  status?: SubscriptionStatusDto):
+   Promise<SubscriptionDto[]> {
+  const path = status ?
+   `/api/v1/subscriptions?status=${status}`
+    : '/api/v1/subscriptions';
+  return authorizedRequest<SubscriptionDto[]>(path);
+}
