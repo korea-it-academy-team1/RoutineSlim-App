@@ -8,15 +8,13 @@ import { BackHeader } from '@/components/common/BackHeader';
 import { OptionSheet } from '@/components/common/OptionSheet';
 import { Button } from '@/components/ui/Button';
 import { FormField, FormInput, FormSelect, formStyles } from '@/components/ui/FormField';
-import { mockSubscriptions } from '@/features/subscription/data/mockSubscriptions';
+import type { Subscription } from '@/features/subscription/types';
 import { colors, radius, spacing, typography } from '@/theme';
 
 import { BOARD_OPTIONS } from '../boards';
 import type { CommunityBoard } from '../types';
 
 const CONTENT_MAX_LENGTH = 2000;
-
-const SERVICE_OPTIONS = mockSubscriptions.map((s) => ({ value: s.id, label: s.name }));
 
 export type PostDraft = {
   board: CommunityBoard;
@@ -28,6 +26,8 @@ export type PostDraft = {
 };
 
 type WritePostScreenProps = {
+  /** 내 구독 목록 (서비스 선택지) */
+  subscriptions: Subscription[];
   initialBoard?: CommunityBoard;
   onBack: () => void;
   onSubmit: (draft: PostDraft) => void;
@@ -36,7 +36,8 @@ type WritePostScreenProps = {
 const toNumber = (text: string) => Number(text.replace(/[^0-9]/g, '')) || 0;
 const digitsOnly = (text: string) => text.replace(/[^0-9]/g, '');
 
-export function WritePostScreen({ initialBoard = 'party', onBack, onSubmit }: WritePostScreenProps) {
+export function WritePostScreen({ subscriptions, initialBoard = 'party', onBack, onSubmit }: WritePostScreenProps) {
+  const serviceOptions = subscriptions.map((s) => ({ value: s.id, label: s.name }));
   const [board, setBoard] = useState<CommunityBoard>(initialBoard);
   const [serviceId, setServiceId] = useState<string | null>(null);
   const [title, setTitle] = useState('');
@@ -48,7 +49,7 @@ export function WritePostScreen({ initialBoard = 'party', onBack, onSubmit }: Wr
   const [agreed, setAgreed] = useState(false);
   const [openSheet, setOpenSheet] = useState<'board' | 'service' | null>(null);
 
-  const service = mockSubscriptions.find((s) => s.id === serviceId);
+  const service = subscriptions.find((s) => s.id === serviceId);
   const current = toNumber(currentMembers);
   const max = toNumber(maxMembers);
   const suggestedPrice = service && max > 0 ? Math.ceil(service.price / max / 10) * 10 : 0;
@@ -183,7 +184,7 @@ export function WritePostScreen({ initialBoard = 'party', onBack, onSubmit }: Wr
       <OptionSheet
         visible={openSheet === 'service'}
         title="서비스"
-        options={SERVICE_OPTIONS}
+        options={serviceOptions}
         selected={serviceId}
         onSelect={(id) => {
           setServiceId(id);

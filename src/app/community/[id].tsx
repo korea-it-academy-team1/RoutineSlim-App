@@ -1,28 +1,21 @@
-import { router, useLocalSearchParams } from 'expo-router';
+import { router } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { MOCK_NOW, findPartyPost } from '@/features/community/data/mockPosts';
-import { PartyPostDetailScreen } from '@/features/community/screens/PartyPostDetailScreen';
 import { colors, typography } from '@/theme';
 
+// 커뮤니티 API 가 아직 없어 어떤 게시글도 찾을 수 없다.
+// API 가 생기면 id 로 게시글을 불러와 PartyPostDetailScreen 에 넘긴다.
 export default function PartyPostDetailRoute() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const post = id ? findPartyPost(id) : undefined;
   const goBack = () => (router.canGoBack() ? router.back() : router.replace('/community'));
 
-  if (!post) {
-    return (
-      <View style={styles.notFound}>
-        <Text style={styles.notFoundText}>게시글을 찾을 수 없어요</Text>
-        <Text style={styles.link} onPress={goBack}>
-          목록으로
-        </Text>
-      </View>
-    );
-  }
-
-  // TODO: 참여 요청 API 연동
-  return <PartyPostDetailScreen post={post} now={MOCK_NOW} onBack={goBack} />;
+  return (
+    <View style={styles.notFound}>
+      <Text style={styles.notFoundText}>게시글을 찾을 수 없어요</Text>
+      <Text style={styles.link} onPress={goBack}>
+        목록으로
+      </Text>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({

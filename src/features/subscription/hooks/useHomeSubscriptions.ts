@@ -37,6 +37,15 @@
  *   8번까지 연결한 뒤: 홈 진입 → 잠깐 로딩 → 서버 데이터 표시.
  *   서버를 끄고 진입 → error.code === 'NETWORK_ERROR'
  */
+import { useMemo } from 'react';
 
-// 아직 구현 전. 구현하면 이 줄은 지운다
-export {};
+import { todayKey } from '@/utils/date';
+
+import { buildHomeSummary } from '../utils/homeSummary';
+import { useSubscriptions } from './useSubscriptions';
+
+export function useHomeSubscriptions() {
+  const { subscriptions, loading, error, reload } = useSubscriptions();
+  const summary = useMemo(() => (subscriptions ? buildHomeSummary(subscriptions, todayKey()) : null), [subscriptions]);
+  return { summary, loading, error, reload };
+}

@@ -3,7 +3,7 @@
  * [홈 구현 5/8] 홈 화면 숫자 계산 (총액, 개수, 다가오는 결제)
  * ============================================================================
  * 구독 목록(Subscription[])과 오늘 날짜를 받아 홈에 그릴 값을 만든다. 서버를 부르지 않는 순수 함수라
- * 목업 데이터로 먼저 만들고 확인할 수 있다 (mockSubscriptions + MOCK_TODAY).
+ * 테스트 데이터로 바로 확인할 수 있다.
  *
  * 날짜 함수는 src/utils/date.ts 를 쓴다: toDateKey, diffInDays, parseDateKey
  *
@@ -35,20 +35,65 @@
  *       - 시안의 '지난달과 동일해요' 부분은 지난달 결제 기록(payment 테이블)이 필요해서 지금 API 로는 못 만든다.
  *         서버에 요약 API 가 생기면 그때 붙인다 (docs/home-guide.md "나중에")
  *
- *   (4) myList: 시안처럼 일부만 보여 줄지(예: upcoming 에 없는 것 3개) 전부 보여 줄지는 디자인과 정한다.
- *       정하기 전에는 upcoming 에 없는 것을 다음 결제일 순으로 전부 넣는다
+ *   (4) myList: 이용 중인 구독 전부를 다음 결제일 순으로 넣는다 (다가오는 결제에 있는 것도 포함, 2026-11-14 결정)
  *
  * ----------------------------------------------------------------------------
  * 확인 방법
  * ----------------------------------------------------------------------------
- *   buildHomeSummary(mockSubscriptions, MOCK_TODAY) 결과를 console.log 로 본다
+ *   buildHomeSummary(테스트용 구독 배열, '2026-10-11') 결과를 console.log 로 본다
  *   (목업에는 status, monthlyPrice 가 없으니 4번에서 목업에도 값을 채워 둔다)
  *   - upcoming: 넷플릭스·iCloud+ (D-1), 스포티파이 (D-4), 디즈니+ (D-7)
  *     시안은 D-1 두 개만 그려져 있다. 7일 기준을 그대로 둘지 디자인과 정한다
- *   - myList: YouTube Premium, 쿠팡 와우
+ *   - myList: 6개 전부 (다음 결제일 순)
  *   - totalPrice: 61,690 / activeCount: 6
  *   - description: '다음 결제는 내일'
  */
+import { diffInDays, parseDateKey, type DateKey } from '@/utils/date';
 
-// 아직 구현 전. 구현하면 이 줄은 지운다
-export {};
+import type { Subscription } from '../types';
+
+export type UpcomingPayment = { subscription: Subscription; dDay: number };
+
+export type HomeSummary = {
+  month: number;
+  totalPrice: number;
+  activeCount: number;
+  description: string;
+  upcoming: UpcomingPayment[];
+  myList: Subscription[];
+};
+
+const isInUse = (s: Subscription) => s.status === 'ACTIVE' || s.status === 'TRIAL';
+
+function describeNext(dDay: number | null) {
+  if (dDay === null) return '다가오는 결제가 없어요';
+  if (dDay === 0) return '다음 결제는 오늘';
+  if (dDay === 1) return '다음 결제는 내일';
+  return `다음 결제는 ${dDay}일 뒤`;
+}
+
+export function buildHomeSummary(subscriptions: Subscription[], today: DateKey, upcomingDays = 7): HomeSummary {
+  const inUse = subscriptions.filter(isInUse);
+
+  const upcoming = inUse
+    .map((subscription) => ({ subscription, dDay: diffInDays(today, subscription.nextBillingDate) }))
+    .filter(({ dDay }) => dDay >= 0 && dDay <= upcomingDays)
+    .sort((a, b) => a.dDay - b.dDay || a.subscription.name.localeCompare(b.subscription.name, 'ko'));
+
+  const myList = [...inUse].sort((a, b) => a.nextBillingDate.localeCompare(b.nextBillingDate));
+
+  // 오늘 이후 가장 가까운 결제 (7일 밖이어도)
+  const nextDDay = inUse
+    .map((s) => diffInDays(today, s.nextBillingDate))
+    .filter((d) => d >= 0)
+    .reduce<number | null>((min, d) => (min === null || d < min ? d : min), null);
+
+  return {
+    month: parseDateKey(today).month,
+    totalPrice: inUse.filter((s) => s.status === 'ACTIVE').reduce((sum, s) => sum + s.monthlyPrice, 0),
+    activeCount: inUse.length,
+    description: inUse.length === 0 ? '등록된 구독이 없어요' : describeNext(nextDDay),
+    upcoming,
+    myList,
+  };
+}

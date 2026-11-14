@@ -1,15 +1,18 @@
 import { router, useLocalSearchParams } from 'expo-router';
 
+import { useActiveSubscriptions } from '@/features/subscription/hooks/useSubscriptions';
 import { CleanupCompareScreen } from '@/features/usage/screens/CleanupCompareScreen';
 import { decodeSelection } from '@/features/usage/utils/compareCleanup';
 
 export default function CleanupCompareRoute() {
   // /usage/compare?selection=netflix:downgrade,disney-plus:cancel,coupang-wow:cancel
   const { selection } = useLocalSearchParams<{ selection?: string }>();
+  const { subscriptions } = useActiveSubscriptions();
   const goBack = () => (router.canGoBack() ? router.back() : router.replace('/usage'));
 
   return (
     <CleanupCompareScreen
+      subscriptions={subscriptions}
       selection={decodeSelection(selection)}
       onBack={goBack}
       onReselect={goBack}

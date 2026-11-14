@@ -1,7 +1,7 @@
 import type { Subscription } from '@/features/subscription/types';
 import { parseDateKey, toDateKey, type DateKey } from '@/utils/date';
 
-import type { UsageRecord } from '../data/mockUsage';
+import type { UsageRecord } from '../types';
 
 export const USAGE_WINDOW_DAYS = 30;
 

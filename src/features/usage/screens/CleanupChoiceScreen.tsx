@@ -5,20 +5,21 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import ArrowRightIcon from '@/assets/icons/arrow-right.svg';
 import { BackHeader } from '@/components/common/BackHeader';
 import { Button } from '@/components/ui/Button';
-import { MOCK_TODAY, mockSubscriptions } from '@/features/subscription/data/mockSubscriptions';
+import type { Subscription } from '@/features/subscription/types';
 import { colors, spacing, typography } from '@/theme';
-import type { DateKey } from '@/utils/date';
+import { todayKey, type DateKey } from '@/utils/date';
 import { formatWon } from '@/utils/format';
 
 import { CleanupChoiceCard } from '../components/CleanupChoiceCard';
-import { mockCleanupOptions } from '../data/mockCleanupOptions';
-import { mockUsage } from '../data/mockUsage';
+import { NO_CLEANUP_OPTIONS, NO_USAGE } from '../types';
 import { analyzeUsage } from '../utils/analyzeUsage';
 import { getCleanupChoices, getDefaultAction, type CleanupAction } from '../utils/cleanupPlan';
 
 export type CleanupSelection = Record<string, CleanupAction>;
 
 type CleanupChoiceScreenProps = {
+  /** 이용 중인 구독 (서버) */
+  subscriptions: Subscription[];
   /** 정리 후보 구독 id (접속 적은 순) */
   subscriptionIds: string[];
   today?: DateKey;
@@ -26,27 +27,33 @@ type CleanupChoiceScreenProps = {
   onCompare?: (selection: CleanupSelection) => void;
 };
 
-export function CleanupChoiceScreen({ subscriptionIds, today = MOCK_TODAY, onBack, onCompare }: CleanupChoiceScreenProps) {
+export function CleanupChoiceScreen({
+  subscriptions,
+  subscriptionIds,
+  today = todayKey(),
+  onBack,
+  onCompare,
+}: CleanupChoiceScreenProps) {
   const idsKey = subscriptionIds.join(',');
   const candidates = useMemo(() => {
-    const { candidates: usages } = analyzeUsage(mockSubscriptions, mockUsage, today, Number.POSITIVE_INFINITY);
+    const { candidates: usages } = analyzeUsage(subscriptions, NO_USAGE, today, Number.POSITIVE_INFINITY);
     return (
       usages
         .filter((u) => idsKey.split(',').includes(u.subscription.id))
         // 절약 폭이 큰(금액이 큰) 구독부터
         .sort((a, b) => b.subscription.price - a.subscription.price)
         .map((usage) => {
-          const info = mockCleanupOptions[usage.subscription.id];
+          const info = NO_CLEANUP_OPTIONS[usage.subscription.id];
           return { usage, info, choices: getCleanupChoices(usage.subscription, info) };
         })
     );
-  }, [idsKey, today]);
+  }, [subscriptions, idsKey, today]);
 
   const [selection, setSelection] = useState<CleanupSelection>(() =>
     Object.fromEntries(candidates.map(({ usage, info }) => [usage.subscription.id, getDefaultAction(info)])),
   );
 
-  const totalBefore = mockSubscriptions.reduce((sum, s) => sum + s.price, 0);
+  const totalBefore = subscriptions.reduce((sum, s) => sum + s.price, 0);
   const saving = candidates.reduce((sum, { usage, choices }) => {
     const choice = choices.find((c) => c.action === selection[usage.subscription.id]);
     return sum + (choice ? usage.subscription.price - choice.newPrice : 0);

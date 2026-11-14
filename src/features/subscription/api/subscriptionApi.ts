@@ -101,3 +101,19 @@ export async function getSubscriptions(
     : '/api/v1/subscriptions';
   return authorizedRequest<SubscriptionDto[]>(path);
 }
+
+/** 서버 SubscriptionCreateRequest (보내지 않은 값은 서버 기본값) */
+export type SubscriptionCreateBody = {
+  name: string;
+  categoryId: number;
+  amount: number;
+  billingCycle: BillingCycleDto;
+  /** 'YYYY-MM-DD' */
+  startDate: string;
+  cardId?: number | null;
+  memo?: string | null;
+};
+
+export function createSubscription(body: SubscriptionCreateBody) {
+  return authorizedRequest<SubscriptionDto>('/api/v1/subscriptions', { method: 'POST', body });
+}

@@ -7,10 +7,10 @@ import ChevronRight from '@/assets/icons/chevron-right-small.svg';
 import { PageHeader } from '@/components/common/PageHeader';
 import { SectionHeader } from '@/components/common/SectionHeader';
 import { CATEGORY_META } from '@/features/subscription/categories';
-import { MOCK_TODAY, mockSubscriptions } from '@/features/subscription/data/mockSubscriptions';
+import type { Subscription } from '@/features/subscription/types';
 import { groupRenewalsByDate } from '@/features/subscription/utils/renewal';
 import { colors, spacing, typography } from '@/theme';
-import { parseDateKey, shiftMonth, type DateKey } from '@/utils/date';
+import { parseDateKey, shiftMonth, todayKey, type DateKey } from '@/utils/date';
 import { withSubjectParticle } from '@/utils/format';
 
 import { CategoryBreakdownCard } from '../components/CategoryBreakdownCard';
@@ -18,11 +18,13 @@ import { CategorySpendingCard } from '../components/CategorySpendingCard';
 import { formatPercent, summarizeByCategory } from '../utils/summarizeByCategory';
 
 type StatsScreenProps = {
+  /** 서버 구독 목록 (해지·일시정지는 제외해서 넘긴다) */
+  subscriptions: Subscription[];
   /** 기준 '오늘'. 기본값은 시안 기준일 */
   today?: DateKey;
 };
 
-export function StatsScreen({ today = MOCK_TODAY }: StatsScreenProps) {
+export function StatsScreen({ subscriptions, today = todayKey() }: StatsScreenProps) {
   const [visibleMonth, setVisibleMonth] = useState(() => {
     const { year, month } = parseDateKey(today);
     return { year, month };
@@ -30,10 +32,10 @@ export function StatsScreen({ today = MOCK_TODAY }: StatsScreenProps) {
   const { year, month } = visibleMonth;
 
   const summary = useMemo(() => {
-    const monthSubscriptions = [...groupRenewalsByDate(mockSubscriptions, year, month).values()].flat();
+    const monthSubscriptions = [...groupRenewalsByDate(subscriptions, year, month).values()].flat();
     // 날짜순이 아니라 원래 등록 순서로 보여준다
-    return summarizeByCategory(mockSubscriptions.filter((s) => monthSubscriptions.includes(s)));
-  }, [year, month]);
+    return summarizeByCategory(subscriptions.filter((s) => monthSubscriptions.includes(s)));
+  }, [subscriptions, year, month]);
 
   const top = summary.categories.reduce<(typeof summary.categories)[number] | null>(
     (max, c) => (!max || c.total > max.total ? c : max),
