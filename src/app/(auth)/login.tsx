@@ -1,5 +1,9 @@
 import { router } from 'expo-router';
+import { useState } from 'react';
 
+import { ApiError } from '@/api/client';
+import type { LoginCredentials } from '@/features/auth/api/authApi';
+import { useAuthStore } from '@/features/auth/authStore';
 import { LoginScreen } from '@/features/auth/screens/LoginScreen';
 
 /*
@@ -35,6 +39,31 @@ import { LoginScreen } from '@/features/auth/screens/LoginScreen';
  * 테스트 계정: 아이디 admin / 비밀번호 qwert123!@ (서버 V3__insert_admin_member.sql)
  */
 export default function LoginRoute() {
-  // TODO: 인증 API 연동 후 성공 시에만 이동
-  return <LoginScreen onLogin={() => router.replace('/home')} />;
+  const signIn = useAuthStore((state) => state.signIn);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleLogin = async (credentials: LoginCredentials) => {
+    if (!credentials.id || !credentials.password) {
+      setErrorMessage('아이디와 비밀번호를 입력해 주세요.');
+      return;
+    }
+
+    setSubmitting(true);
+    setErrorMessage(null);
+    try {
+      await signIn(credentials);
+      router.replace('/home'); // 홈에서 뒤로 가기로 로그인 화면에 돌아오지 않게
+    } catch (error) {
+      setErrorMessage(
+        error instanceof ApiError && error.code === 'NETWORK_ERROR'
+          ? error.message
+          : '로그인하지 못했어요. 아이디와 비밀번호를 확인해 주세요.',
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return <LoginScreen onLogin={handleLogin} errorMessage={errorMessage} submitting={submitting} />;
 }

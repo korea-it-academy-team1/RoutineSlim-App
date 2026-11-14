@@ -16,9 +16,7 @@ import type { DateKey } from '@/utils/date';
 import { formatWon } from '@/utils/format';
 
 import { ServiceLogoView } from '../components/ServiceLogoView';
-import { mockSubscriptions } from '../data/mockSubscriptions';
-import type { ScanResult } from '../data/mockScanResult';
-import type { ServiceLogo } from '../types';
+import type { ScanResult, ServiceLogo, Subscription } from '../types';
 import {
   CYCLE_OPTIONS,
   digitsOnly,
@@ -43,12 +41,14 @@ function fallbackLogo(name: string): ServiceLogo {
 
 type ScanResultScreenProps = {
   result: ScanResult;
+  /** 이미 등록된 구독 (같은 이름이면 '업데이트'로 안내) */
+  subscriptions: Subscription[];
   onBack: () => void;
   onPreviewSource?: () => void;
   onSubmit: (draft: ScanResultDraft) => void;
 };
 
-export function ScanResultScreen({ result, onBack, onPreviewSource, onSubmit }: ScanResultScreenProps) {
+export function ScanResultScreen({ result, subscriptions, onBack, onPreviewSource, onSubmit }: ScanResultScreenProps) {
   const [name, setName] = useState(result.name);
   const [priceInput, setPriceInput] = useState(String(result.price));
   const [priceFocused, setPriceFocused] = useState(false);
@@ -58,7 +58,7 @@ export function ScanResultScreen({ result, onBack, onPreviewSource, onSubmit }: 
 
   const price = Number(priceInput) || 0;
   const nextBillingDate = parseDateInput(dateInput);
-  const existing = mockSubscriptions.find((s) => s.name === name.trim());
+  const existing = subscriptions.find((s) => s.name === name.trim());
   const canSubmit = name.trim().length > 0 && price > 0 && !!nextBillingDate;
 
   // 편집 중에는 숫자만, 아닐 때는 시안처럼 '17,000원'으로 보여준다

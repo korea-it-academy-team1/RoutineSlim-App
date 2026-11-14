@@ -1,6 +1,6 @@
 import type { Subscription } from '@/features/subscription/types';
 
-import type { CleanupOptionInfo } from '../data/mockCleanupOptions';
+import type { CleanupOptionInfo } from '../types';
 
 export type CleanupAction = 'cancel' | 'downgrade' | 'party' | 'keep';
 

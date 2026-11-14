@@ -12,10 +12,11 @@ import { colors, spacing, typography } from '@/theme';
 
 import { BOARD_OPTIONS } from '../boards';
 import { PartyPostCard } from '../components/PartyPostCard';
-import { MOCK_NOW, mockPartyPosts } from '../data/mockPosts';
 import type { CommunityBoard, PartyPost } from '../types';
 
 type CommunityScreenProps = {
+  /** 파티 모집 게시글. 커뮤니티 API 가 아직 없어 지금은 항상 빈 목록 */
+  partyPosts?: PartyPost[];
   onPressSearch?: () => void;
   onPressServiceFilter?: () => void;
   onPressSort?: () => void;
@@ -24,6 +25,7 @@ type CommunityScreenProps = {
 };
 
 export function CommunityScreen({
+  partyPosts = [],
   onPressSearch,
   onPressServiceFilter,
   onPressSort,
@@ -32,7 +34,8 @@ export function CommunityScreen({
 }: CommunityScreenProps) {
   const [board, setBoard] = useState<CommunityBoard>('party');
   // 후기·자유 게시판은 아직 시안이 없어 빈 목록
-  const posts = board === 'party' ? mockPartyPosts : [];
+  const posts = board === 'party' ? partyPosts : [];
+  const now = new Date().toISOString();
 
   return (
     <SafeAreaView edges={['top']} style={styles.safeArea}>
@@ -66,7 +69,7 @@ export function CommunityScreen({
             </View>
           }
           ListEmptyComponent={<Text style={styles.empty}>아직 게시글이 없어요</Text>}
-          renderItem={({ item }) => <PartyPostCard post={item} now={MOCK_NOW} onPress={() => onPressPost?.(item)} />}
+          renderItem={({ item }) => <PartyPostCard post={item} now={now} onPress={() => onPressPost?.(item)} />}
         />
 
         <FloatingActionButton

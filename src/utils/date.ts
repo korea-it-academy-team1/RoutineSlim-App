@@ -32,3 +32,8 @@ export function shiftMonth({ year, month }: YearMonth, delta: number): YearMonth
 export function daysInMonth(year: number, month: number) {
   return new Date(year, month, 0).getDate();
 }
+
+/** 기기 시간 기준 오늘 날짜 키 */
+export function todayKey(now = new Date()): DateKey {
+  return toDateKey(now.getFullYear(), now.getMonth() + 1, now.getDate());
+}

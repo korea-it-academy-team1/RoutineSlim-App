@@ -5,7 +5,7 @@ import { ScanSubscriptionScreen } from '@/features/subscription/screens/ScanSubs
 export default function ScanSubscriptionRoute() {
   const goBack = () => (router.canGoBack() ? router.back() : router.replace('/subscription/add'));
 
-  // 이미지 피커 설치 전까지는 선택·촬영 없이 목업 인식 결과로 넘어간다
+  // 이미지 피커·인식 API 연결 전이라 결과 화면은 '결과 없음' 안내만 보여 준다
   const showResult = () => router.push('/subscription/scan-result');
   return <ScanSubscriptionScreen onBack={goBack} onPickFromAlbum={showResult} onTakePhoto={showResult} />;
 }

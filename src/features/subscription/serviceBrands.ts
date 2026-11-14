@@ -14,7 +14,7 @@
  *   (2) export const SERVICE_BRANDS: Record<string, ServiceBrand>
  *       - 키는 서비스 이름. 서버 V2__seed_categories_presets.sql 의 service_preset.service_name 과 똑같이 쓴다
  *         넷플릭스 / 디즈니+ / YouTube Premium / 스포티파이 / iCloud+ / 쿠팡 와우
- *       - 값은 data/mockSubscriptions.ts 의 logo, accent 를 그대로 옮긴다 (svg import 도 같이 옮김)
+ *       - 값은 Figma 시안의 logo, accent 를 쓴다
  *       - presetId(숫자)를 키로 쓰지 않는 이유: DB 마다 번호가 달라질 수 있어서. 이름은 시드에 고정돼 있다
  *
  *   (3) export function getServiceBrand(name: string): ServiceBrand
@@ -23,7 +23,6 @@
  *           logo:   { kind: 'text', text: name.slice(0, 1), color: '#FFFFFF', fontSize: 16.56, background: '#A5AABB' }
  *           accent: { color: colors.primary, soft: colors.backgroundMuted } 처럼 theme 색에서 고른다
  *
- *   주의: mockSubscriptions.ts 는 아직 캘린더·통계 화면이 쓰고 있으니 지우지 않는다.
  *         두 곳에 같은 값이 생기지만, 캘린더·통계도 API 로 바꿀 때 목업을 정리한다.
  *
  * ----------------------------------------------------------------------------

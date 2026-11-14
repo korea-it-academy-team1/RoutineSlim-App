@@ -1,6 +1,7 @@
 import { Redirect } from 'expo-router';
 import { useEffect, useState } from 'react';
 
+import { useAuthStore } from '@/features/auth/authStore';
 import { hasSeenOnboarding } from '@/features/onboarding/onboardingStorage';
 
 /*
@@ -29,13 +30,17 @@ import { hasSeenOnboarding } from '@/features/onboarding/onboardingStorage';
  */
 export default function Index() {
   const [seen, setSeen] = useState<boolean | null>(null);
+  const authStatus = useAuthStore((state) => state.status);
+  const restore = useAuthStore((state) => state.restore);
 
   useEffect(() => {
     hasSeenOnboarding().then(setSeen);
-  }, []);
+    void restore(); // 저장된 로그인(회원 UUID)이 있으면 signedIn
+  }, [restore]);
 
   // 저장소를 읽는 동안은 아무것도 그리지 않는다 (아주 짧은 순간)
-  if (seen === null) return null;
+  if (seen === null || authStatus === 'unknown') return null;
 
-  return <Redirect href={seen ? '/login' : '/onboarding'} />;
+  if (!seen) return <Redirect href="/onboarding" />;
+  return <Redirect href={authStatus === 'signedIn' ? '/home' : '/login'} />;
 }

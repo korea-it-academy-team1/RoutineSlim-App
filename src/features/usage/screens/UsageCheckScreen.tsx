@@ -6,20 +6,22 @@ import ClockIcon from '@/assets/icons/clock.svg';
 import InfoIcon from '@/assets/icons/info.svg';
 import { BackHeader } from '@/components/common/BackHeader';
 import { Button } from '@/components/ui/Button';
-import { MOCK_TODAY, mockSubscriptions } from '@/features/subscription/data/mockSubscriptions';
+import type { Subscription } from '@/features/subscription/types';
 import { colors, radius, spacing, typography } from '@/theme';
-import type { DateKey } from '@/utils/date';
+import { todayKey, type DateKey } from '@/utils/date';
 import { formatWon } from '@/utils/format';
 
 import { CleanupCandidateCard } from '../components/CleanupCandidateCard';
 import { UsageServiceHeader } from '../components/UsageServiceHeader';
 import { UsageStrip } from '../components/UsageStrip';
-import { mockUsage } from '../data/mockUsage';
+import { NO_USAGE } from '../types';
 import { analyzeUsage, formatShortDate, getUsageWindow, USAGE_WINDOW_DAYS } from '../utils/analyzeUsage';
 
 const THRESHOLDS = [2, 4, 8];
 
 type UsageCheckScreenProps = {
+  /** 이용 중인 구독 (서버) */
+  subscriptions: Subscription[];
   today?: DateKey;
   onBack: () => void;
   onPressInfo?: () => void;
@@ -27,13 +29,20 @@ type UsageCheckScreenProps = {
   onReviewCandidates?: (subscriptionIds: string[]) => void;
 };
 
-export function UsageCheckScreen({ today = MOCK_TODAY, onBack, onPressInfo, onReviewCandidates }: UsageCheckScreenProps) {
+export function UsageCheckScreen({
+  subscriptions,
+  today = todayKey(),
+  onBack,
+  onPressInfo,
+  onReviewCandidates,
+}: UsageCheckScreenProps) {
   const [threshold, setThreshold] = useState(4);
   const window = getUsageWindow(today);
   const { candidates, frequent, background, candidateTotal } = useMemo(
-    () => analyzeUsage(mockSubscriptions, mockUsage, today, threshold),
-    [today, threshold],
+    () => analyzeUsage(subscriptions, NO_USAGE, today, threshold),
+    [subscriptions, today, threshold],
   );
+  const hasRecords = candidates.length + frequent.length + background.length > 0;
   const frequentRows = [
     ...frequent.map((u) => ({
       subscription: u.subscription,
@@ -68,7 +77,11 @@ export function UsageCheckScreen({ today = MOCK_TODAY, onBack, onPressInfo, onRe
 
           <View style={styles.headline}>
             <Text style={styles.headlineTitle}>
-              {candidates.length > 0 ? `${candidates.length}개 구독을 거의 안 썼어요` : '모든 구독을 잘 쓰고 있어요'}
+              {candidates.length > 0
+                ? `${candidates.length}개 구독을 거의 안 썼어요`
+                : hasRecords
+                  ? '모든 구독을 잘 쓰고 있어요'
+                  : '아직 앱 사용 기록이 없어요'}
             </Text>
             {candidates.length > 0 ? (
               <Text style={styles.headlineLead}>

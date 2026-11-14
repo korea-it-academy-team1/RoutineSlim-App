@@ -10,11 +10,11 @@ import { Card } from '@/components/common/Card';
 import { PageHeader } from '@/components/common/PageHeader';
 import { SectionHeader } from '@/components/common/SectionHeader';
 import { SubscriptionRow } from '@/features/subscription/components/SubscriptionRow';
-import { MOCK_TODAY, mockSubscriptions } from '@/features/subscription/data/mockSubscriptions';
+import type { Subscription } from '@/features/subscription/types';
 import { findNextPayments, groupRenewalsByDate } from '@/features/subscription/utils/renewal';
 import { useVerticalSwipe } from '@/hooks/useVerticalSwipe';
 import { colors, radius, spacing, typography } from '@/theme';
-import { parseDateKey, shiftMonth, type DateKey } from '@/utils/date';
+import { parseDateKey, shiftMonth, todayKey, type DateKey } from '@/utils/date';
 import { formatMonthDay, formatRelativeDay, formatWon } from '@/utils/format';
 
 import { DayPaymentsSheet } from '../components/DayPaymentsSheet';
@@ -22,7 +22,9 @@ import { ExpandedMonthCalendar } from '../components/ExpandedMonthCalendar';
 import { MonthCalendar } from '../components/MonthCalendar';
 
 type CalendarScreenProps = {
-  /** 기준 '오늘'. 기본값은 시안 기준일 */
+  /** 서버 구독 목록 (해지·일시정지는 제외해서 넘긴다) */
+  subscriptions: Subscription[];
+  /** 기준 '오늘'. 기본값은 기기 날짜 */
   today?: DateKey;
   /** 처음부터 결제 시트를 열어 둘 날짜 (딥링크 등) */
   initialSelectedDate?: DateKey;
@@ -30,7 +32,12 @@ type CalendarScreenProps = {
   initialExpanded?: boolean;
 };
 
-export function CalendarScreen({ today = MOCK_TODAY, initialSelectedDate, initialExpanded = false }: CalendarScreenProps) {
+export function CalendarScreen({
+  subscriptions,
+  today = todayKey(),
+  initialSelectedDate,
+  initialExpanded = false,
+}: CalendarScreenProps) {
   const [visibleMonth, setVisibleMonth] = useState(() => {
     const { year, month } = parseDateKey(initialSelectedDate ?? today);
     return { year, month };
@@ -39,7 +46,6 @@ export function CalendarScreen({ today = MOCK_TODAY, initialSelectedDate, initia
   const [expanded, setExpanded] = useState(initialExpanded);
   const { year, month } = visibleMonth;
 
-  const subscriptions = mockSubscriptions;
   const renewals = useMemo(() => groupRenewalsByDate(subscriptions, year, month), [subscriptions, year, month]);
   const renewalCounts = useMemo(
     () => new Map([...renewals].map(([date, subs]) => [date, subs.length])),

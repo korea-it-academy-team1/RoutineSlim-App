@@ -3,8 +3,8 @@ import type { Subscription, SubscriptionCategory } from '@/features/subscription
 import { parseDateKey, type DateKey } from '@/utils/date';
 import { formatMonthDay } from '@/utils/format';
 
-import type { CleanupOptionInfo } from '../data/mockCleanupOptions';
-import type { UsageRecord } from '../data/mockUsage';
+import type { CleanupOptionInfo } from '../types';
+import type { UsageRecord } from '../types';
 import { analyzeUsage } from './analyzeUsage';
 import { getCleanupChoices, type CleanupAction } from './cleanupPlan';
 

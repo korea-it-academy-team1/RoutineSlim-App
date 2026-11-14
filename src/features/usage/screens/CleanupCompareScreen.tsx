@@ -6,19 +6,20 @@ import CalendarSmallIcon from '@/assets/icons/calendar-small.svg';
 import WarningIcon from '@/assets/icons/warning.svg';
 import { BackHeader } from '@/components/common/BackHeader';
 import { Button } from '@/components/ui/Button';
-import { MOCK_TODAY, mockSubscriptions } from '@/features/subscription/data/mockSubscriptions';
+import type { Subscription } from '@/features/subscription/types';
 import { colors, radius, spacing, typography } from '@/theme';
-import type { DateKey } from '@/utils/date';
+import { todayKey, type DateKey } from '@/utils/date';
 import { formatWon } from '@/utils/format';
 
 import { CategoryChangeCard } from '../components/CategoryChangeCard';
 import { DiffList } from '../components/DiffList';
-import { mockCleanupOptions } from '../data/mockCleanupOptions';
-import { mockUsage } from '../data/mockUsage';
+import { NO_CLEANUP_OPTIONS, NO_USAGE } from '../types';
 import type { CleanupAction } from '../utils/cleanupPlan';
 import { compareCleanup } from '../utils/compareCleanup';
 
 type CleanupCompareScreenProps = {
+  /** 이용 중인 구독 (서버) */
+  subscriptions: Subscription[];
   selection: Record<string, CleanupAction>;
   today?: DateKey;
   onBack: () => void;
@@ -29,15 +30,16 @@ type CleanupCompareScreenProps = {
 };
 
 export function CleanupCompareScreen({
+  subscriptions,
   selection,
-  today = MOCK_TODAY,
+  today = todayKey(),
   onBack,
   onSave,
   onReselect,
 }: CleanupCompareScreenProps) {
   const { before, after, saving, rows, categories, notes } = useMemo(
-    () => compareCleanup(mockSubscriptions, mockUsage, mockCleanupOptions, selection, today),
-    [selection, today],
+    () => compareCleanup(subscriptions, NO_USAGE, NO_CLEANUP_OPTIONS, selection, today),
+    [subscriptions, selection, today],
   );
   const keptRatio = before > 0 ? after / before : 1;
 

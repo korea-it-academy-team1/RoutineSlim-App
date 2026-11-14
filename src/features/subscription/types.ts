@@ -1,6 +1,8 @@
 import type { FC } from 'react';
 import type { SvgProps } from 'react-native-svg';
 
+import type { DateKey } from '@/utils/date';
+
 export type ServiceLogo =
   | { kind: 'text'; text: string; color: string; fontSize: number; background: string }
   | {
@@ -28,7 +30,6 @@ export type SubscriptionCategory = 'ott' | 'music' | 'cloud' | 'shopping';
  *   (2) monthlyPrice: number;  추가 — 월 환산 금액 (서버 monthlyAmount). 홈 총액은 이 값의 합
  *       price 는 지금처럼 1회 결제 금액 (행에 표시)
  *   (3) status: 'TRIAL' | 'ACTIVE' | 'PAUSED' | 'CANCELED';  추가 — 서버 값 그대로 (대문자)
- *   (4) data/mockSubscriptions.ts 의 목업 6개에도 monthlyPrice(= price), status('ACTIVE') 를 채운다
  *       (캘린더·통계 화면이 아직 목업을 쓰고, 홈 계산(5번)도 목업으로 먼저 확인하므로)
  */
 export type Subscription = {
@@ -46,4 +47,14 @@ export type Subscription = {
   /** 다음 결제일 (YYYY-MM-DD) */
   nextBillingDate: string;
   cycle: 'monthly' | 'yearly' | 'weekly';
+};
+
+/** 영수증·결제 내역 이미지 인식 결과 (스캔 결과 확인 화면 입력값) */
+export type ScanResult = {
+  /** 인식한 이미지 설명과 파일 이름 */
+  source: { title: string; fileName: string };
+  name: string;
+  price: number;
+  cycle: Subscription['cycle'];
+  nextBillingDate: DateKey;
 };

@@ -5,6 +5,10 @@ import type { Subscription } from '../types';
 /** 해당 월에 이 구독이 결제되는 날짜. 결제가 없는 달이면 null */
 export function getRenewalDateInMonth(subscription: Subscription, year: number, month: number): DateKey | null {
   const base = parseDateKey(subscription.nextBillingDate);
+  // 매주 결제는 아직 주 단위 반복을 계산하지 않고, 다음 결제일이 그 달이면 그날만 표시한다
+  if (subscription.cycle === 'weekly') {
+    return base.year === year && base.month === month ? subscription.nextBillingDate : null;
+  }
   if (subscription.cycle === 'yearly' && base.month !== month) return null;
   // 31일 결제 구독이 30일까지인 달에는 말일에 결제된다
   return toDateKey(year, month, Math.min(base.day, daysInMonth(year, month)));

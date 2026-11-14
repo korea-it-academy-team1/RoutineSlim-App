@@ -12,7 +12,6 @@ import { colors, spacing, typography } from '@/theme';
 import { parseDateKey, type DateKey } from '@/utils/date';
 
 import { CATEGORY_META, CATEGORY_ORDER } from '../categories';
-import { mockPaymentMethods } from '../data/mockPaymentMethods';
 import type { SubscriptionCategory } from '../types';
 import {
   CYCLE_OPTIONS,
@@ -28,12 +27,14 @@ export type SubscriptionDraft = {
   price: number;
   cycle: BillingCycle;
   startDate: DateKey;
-  paymentMethodId: string;
+  /** 결제수단 API 가 아직 없어 지금은 항상 비어 있다 */
+  paymentMethodId?: string;
   memo?: string;
 };
 
 const CATEGORY_OPTIONS = CATEGORY_ORDER.map((c) => ({ value: c, label: CATEGORY_META[c].label }));
-const PAYMENT_OPTIONS = mockPaymentMethods.map((m) => ({ value: m.id, label: m.label }));
+/** 등록된 결제수단. 결제수단 API 가 생기면 props 로 받는다 */
+const PAYMENT_OPTIONS: { value: string; label: string }[] = [];
 
 const MEMO_MAX_LENGTH = 100;
 
@@ -48,9 +49,18 @@ function billingNotice(startDate: DateKey | null, cycle: BillingCycle) {
 type ManualSubscriptionScreenProps = {
   onBack: () => void;
   onSubmit: (draft: SubscriptionDraft) => void;
+  /** 저장 요청 중 */
+  submitting?: boolean;
+  /** 저장 실패 안내 */
+  errorMessage?: string;
 };
 
-export function ManualSubscriptionScreen({ onBack, onSubmit }: ManualSubscriptionScreenProps) {
+export function ManualSubscriptionScreen({
+  onBack,
+  onSubmit,
+  submitting = false,
+  errorMessage,
+}: ManualSubscriptionScreenProps) {
   const [name, setName] = useState('');
   const [category, setCategory] = useState<SubscriptionCategory | null>(null);
   const [priceInput, setPriceInput] = useState('');
@@ -62,17 +72,17 @@ export function ManualSubscriptionScreen({ onBack, onSubmit }: ManualSubscriptio
 
   const price = Number(priceInput) || 0;
   const startDate = parseDateInput(dateInput);
-  const canSubmit = name.trim().length > 0 && !!category && price > 0 && !!startDate && !!paymentMethodId;
+  const canSubmit = name.trim().length > 0 && !!category && price > 0 && !!startDate && !submitting;
 
   const submit = () => {
-    if (!canSubmit || !category || !startDate || !paymentMethodId) return;
+    if (!canSubmit || !category || !startDate) return;
     onSubmit({
       name: name.trim(),
       category,
       price,
       cycle,
       startDate,
-      paymentMethodId,
+      paymentMethodId: paymentMethodId ?? undefined,
       memo: memo.trim() || undefined,
     });
   };
@@ -133,11 +143,11 @@ export function ManualSubscriptionScreen({ onBack, onSubmit }: ManualSubscriptio
             />
           </FormField>
 
-          <FormField label="결제 수단">
+          <FormField label="결제 수단 (선택)">
             <FormSelect
-              value={mockPaymentMethods.find((m) => m.id === paymentMethodId)?.label}
-              placeholder="결제 수단 선택"
-              onPress={() => setOpenSheet('payment')}
+              value={PAYMENT_OPTIONS.find((m) => m.value === paymentMethodId)?.label}
+              placeholder={PAYMENT_OPTIONS.length > 0 ? '결제 수단 선택' : '등록된 결제 수단이 없어요'}
+              onPress={() => PAYMENT_OPTIONS.length > 0 && setOpenSheet('payment')}
             />
           </FormField>
 
@@ -160,7 +170,9 @@ export function ManualSubscriptionScreen({ onBack, onSubmit }: ManualSubscriptio
 
           <View style={styles.spacer} />
 
-          <Button size="md" title="구독 저장" disabled={!canSubmit} onPress={submit} />
+          {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
+
+          <Button size="md" title={submitting ? '저장 중…' : '구독 저장'} disabled={!canSubmit} onPress={submit} />
         </ScrollView>
       </KeyboardAvoidingView>
 
@@ -239,5 +251,10 @@ const styles = StyleSheet.create({
   },
   spacer: {
     flex: 1,
+  },
+  error: {
+    ...typography.small,
+    color: colors.danger,
+    textAlign: 'center',
   },
 });
