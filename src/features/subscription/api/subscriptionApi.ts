@@ -137,6 +137,22 @@ export function updateSubscription(id: string, body: SubscriptionUpdateBody) {
   return authorizedRequest<SubscriptionDto>(`/api/v1/subscriptions/${id}`, { method: 'PUT', body });
 }
 
+/**
+ * 상태 변경. CANCELED 해지, PAUSED 일시정지, ACTIVE 재개.
+ * 해지·일시정지한 구독의 청구 기록은 남아서 지난달 통계·캘린더에 계속 나온다
+ */
+export function changeSubscriptionStatus(id: string, status: SubscriptionStatusDto) {
+  return authorizedRequest<SubscriptionDto>(`/api/v1/subscriptions/${id}/status`, {
+    method: 'PATCH',
+    body: { status },
+  });
+}
+
+/** 잘못 등록한 구독 삭제 (soft delete). 해지와 달리 청구 기록도 통계·캘린더에서 빠진다 */
+export function deleteSubscription(id: string) {
+  return authorizedRequest<void>(`/api/v1/subscriptions/${id}`, { method: 'DELETE' });
+}
+
 /** 서버 SubscriptionScanResponse. 못 읽은 값은 null */
 export type SubscriptionScanDto = {
   fileName: string | null;

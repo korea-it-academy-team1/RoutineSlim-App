@@ -8,11 +8,20 @@ import { useMyInfo } from '@/features/my/hooks/useMyInfo';
 import { MyScreen, type MyMenu } from '@/features/my/screens/MyScreen';
 import { confirmDialog, showMessage } from '@/features/my/utils/dialog';
 import { formatNotification, slimDays } from '@/features/my/utils/myInfo';
+import { useUsageChecks } from '@/features/usage/hooks/useUsageChecks';
+import { isCandidateLevel } from '@/features/usage/utils/usageLevels';
+import { formatWon } from '@/utils/format';
 
 export default function MyRoute() {
   const signOut = useAuthStore((state) => state.signOut);
   const { info, error, reload } = useMyInfo();
   const { subscriptions, loaded: subscriptionsLoaded } = useActiveSubscriptions();
+  const { checks } = useUsageChecks();
+  // 이용 중인 구독 중 '거의 안 씀'·'안 씀' 으로 체크한 수
+  const usageCandidateCount = checks
+    ? checks.filter((c) => isCandidateLevel(c.usageLevel) && subscriptions.some((s) => s.id === c.subscriptionId))
+        .length
+    : undefined;
   const [withdrawing, setWithdrawing] = useState(false);
 
   const handleLogout = async () => {
@@ -42,7 +51,10 @@ export default function MyRoute() {
 
   const handlePressMenu = (menu: MyMenu) => {
     if (menu === 'profile') router.push('/my/profile');
+    else if (menu === 'subscriptions') router.push('/my/subscriptions');
+    else if (menu === 'budget') router.push('/my/budget');
     else if (menu === 'notifications') router.push('/my/notifications');
+    else if (menu === 'usage') router.push('/usage');
     else if (menu === 'withdraw') void handleWithdraw();
     // 나머지 메뉴는 아직 화면이 없다
   };
@@ -62,6 +74,8 @@ export default function MyRoute() {
       onRetryProfile={reload}
       subscriptionCount={subscriptionsLoaded ? subscriptions.length : undefined}
       notificationLabel={info ? formatNotification(info.defaultNotificationDays, info.notificationTime) : undefined}
+      budgetLabel={info ? (info.monthlyBudget ? formatWon(info.monthlyBudget) : '미설정') : undefined}
+      usageCandidateCount={usageCandidateCount}
       onPressMenu={handlePressMenu}
       onLogout={handleLogout}
     />

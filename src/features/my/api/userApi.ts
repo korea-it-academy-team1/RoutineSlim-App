@@ -26,6 +26,8 @@ export type MyInfoDto = {
   defaultNotificationDays: number;
   /** 'HH:mm:ss' */
   notificationTime: string;
+  /** 월 예산 (원). 없으면 미설정 */
+  monthlyBudget: number | null;
   /** 'YYYY-MM-DDTHH:mm:ss' */
   createdAt: string;
   updatedAt: string | null;
@@ -62,5 +64,13 @@ export function updateNotificationSettings(body: NotificationSettingsBody) {
   return authorizedRequest<void>('/users/notification-settings', {
     method: 'PUT',
     body,
+  });
+}
+
+/** 월 예산 저장. null 이면 해제 */
+export function updateMonthlyBudget(monthlyBudget: number | null) {
+  return authorizedRequest<void>('/users/monthly-budget', {
+    method: 'PUT',
+    body: { monthlyBudget },
   });
 }

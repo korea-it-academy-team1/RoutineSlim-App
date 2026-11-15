@@ -3,8 +3,9 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import ChevronRight from '@/assets/icons/chevron-right-light.svg';
 import BellIcon from '@/assets/icons/menu/bell.svg';
-import CardIcon from '@/assets/icons/menu/card.svg';
+import ChartIcon from '@/assets/icons/menu/chart.svg';
 import ChatIcon from '@/assets/icons/menu/chat.svg';
 import CircleIcon from '@/assets/icons/menu/circle.svg';
 import CloudIcon from '@/assets/icons/menu/cloud.svg';
@@ -24,7 +25,7 @@ export type MyMenu =
   | 'profile'
   | 'report'
   | 'subscriptions'
-  | 'paymentMethods'
+  | 'usage'
   | 'budget'
   | 'notifications'
   | 'communityActivity'
@@ -50,6 +51,10 @@ type MyScreenProps = {
   subscriptionCount?: number;
   /** '알림 설정' 오른쪽 값 (예: 'D-3 · 09:00'). 불러오는 중이면 undefined */
   notificationLabel?: string;
+  /** '월 예산' 오른쪽 값 (예: '100,000원', '미설정'). 불러오는 중이면 undefined */
+  budgetLabel?: string;
+  /** 사용량 점검의 정리 후보 수 ('거의 안 씀'·'안 씀'). 0 이거나 모르면 배지를 숨긴다 */
+  usageCandidateCount?: number;
   onPressMenu?: (menu: MyMenu) => void;
   onLogout?: () => void;
 };
@@ -62,6 +67,8 @@ export function MyScreen({
   onRetryProfile,
   subscriptionCount,
   notificationLabel,
+  budgetLabel,
+  usageCandidateCount,
   onPressMenu,
   onLogout,
 }: MyScreenProps) {
@@ -97,15 +104,24 @@ export function MyScreen({
               onPress={open('subscriptions')}
             />
             <SettingsRow
-              icon={<CardIcon width={17.8} height={13.8} />}
-              title="결제수단 관리"
-              value="없음"
-              onPress={open('paymentMethods')}
+              icon={<ChartIcon width={15.8} height={13.8} />}
+              title="사용량 점검"
+              accessory={
+                usageCandidateCount ? (
+                  <View style={styles.badgeAccessory}>
+                    <View style={styles.candidateBadge}>
+                      <Text style={styles.candidateBadgeText}>{`정리 후보 ${usageCandidateCount}`}</Text>
+                    </View>
+                    <ChevronRight width={7.8} height={13.8} />
+                  </View>
+                ) : undefined
+              }
+              onPress={open('usage')}
             />
             <SettingsRow
               icon={<SymbolInCircle symbol="₩" fontSize={10.5} />}
               title="월 예산"
-              value="미설정"
+              value={budgetLabel ?? ''}
               onPress={open('budget')}
             />
             <SettingsRow
@@ -186,6 +202,21 @@ function SymbolInCircle({ symbol, fontSize }: { symbol: string; fontSize: number
 }
 
 const styles = StyleSheet.create({
+  badgeAccessory: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  candidateBadge: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: radius.pill,
+    backgroundColor: colors.sunday,
+  },
+  candidateBadgeText: {
+    ...typography.metaBold,
+    color: colors.white,
+  },
   safeArea: {
     flex: 1,
     backgroundColor: colors.backgroundMuted,
