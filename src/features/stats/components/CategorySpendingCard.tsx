@@ -12,9 +12,16 @@ type CategorySpendingCardProps = {
   total: number;
   count: number;
   categories: CategorySummary[];
+  /** 도넛 가운데 금액 위 문구 (지난달: 결제한 구독료, 다음 달: 결제 예정 구독료) */
+  caption?: string;
 };
 
-export function CategorySpendingCard({ total, count, categories }: CategorySpendingCardProps) {
+export function CategorySpendingCard({
+  total,
+  count,
+  categories,
+  caption = '이번 달 총 구독료',
+}: CategorySpendingCardProps) {
   return (
     <Card style={styles.card}>
       <Text style={styles.title}>카테고리별 지출 비중</Text>
@@ -24,7 +31,7 @@ export function CategorySpendingCard({ total, count, categories }: CategorySpend
           thickness={17.76}
           segments={categories.map((c) => ({ key: c.category, value: c.total, color: CATEGORY_META[c.category].color }))}
         >
-          <Text style={styles.centerCaption}>이번 달 총 구독료</Text>
+          <Text style={styles.centerCaption}>{caption}</Text>
           <Text style={styles.centerAmount}>{formatWon(total)}</Text>
           <Text style={styles.centerCaption}>{`${count}개 구독`}</Text>
         </DonutChart>
