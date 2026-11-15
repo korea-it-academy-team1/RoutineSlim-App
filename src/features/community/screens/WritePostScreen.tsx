@@ -15,20 +15,35 @@ import { BOARD_OPTIONS } from '../boards';
 import type { CommunityBoard } from '../types';
 
 const CONTENT_MAX_LENGTH = 2000;
+/** 서버 제한: 파티 인원(작성자 포함) 2~10명 */
+const MAX_PARTY_MEMBERS = 10;
 
 export type PostDraft = {
   board: CommunityBoard;
-  serviceId: string;
+  /** 고른 내 구독의 서비스 이름. 파티원 모집은 필수, 후기·자유는 고르지 않으면 null */
+  serviceName: string | null;
   title: string;
   content: string;
   /** 파티원 모집 게시판일 때만 */
-  party?: { currentMembers: number; maxMembers: number; pricePerMember: number };
+  party?: {
+    currentMembers: number;
+    maxMembers: number;
+    pricePerMember: number;
+    /** 고른 구독의 월 환산 금액 */
+    totalPrice: number;
+    /** 고른 구독이 월 결제면 다음 결제일의 '일', 아니면 null */
+    settlementDay: number | null;
+  };
 };
 
 type WritePostScreenProps = {
   /** 내 구독 목록 (서비스 선택지) */
   subscriptions: Subscription[];
   initialBoard?: CommunityBoard;
+  /** 등록 요청 중이면 true (버튼 비활성화) */
+  submitting?: boolean;
+  /** 등록 실패 문구 */
+  submitError?: string;
   onBack: () => void;
   onSubmit: (draft: PostDraft) => void;
 };
@@ -36,7 +51,14 @@ type WritePostScreenProps = {
 const toNumber = (text: string) => Number(text.replace(/[^0-9]/g, '')) || 0;
 const digitsOnly = (text: string) => text.replace(/[^0-9]/g, '');
 
-export function WritePostScreen({ subscriptions, initialBoard = 'party', onBack, onSubmit }: WritePostScreenProps) {
+export function WritePostScreen({
+  subscriptions,
+  initialBoard = 'party',
+  submitting = false,
+  submitError,
+  onBack,
+  onSubmit,
+}: WritePostScreenProps) {
   const serviceOptions = subscriptions.map((s) => ({ value: s.id, label: s.name }));
   const [board, setBoard] = useState<CommunityBoard>(initialBoard);
   const [serviceId, setServiceId] = useState<string | null>(null);
@@ -56,17 +78,28 @@ export function WritePostScreen({ subscriptions, initialBoard = 'party', onBack,
   const price = priceInput !== null ? toNumber(priceInput) : suggestedPrice;
 
   const isParty = board === 'party';
-  const partyValid = !isParty || (current >= 1 && max >= 2 && current < max && price > 0);
-  const canSubmit = !!service && title.trim().length > 0 && content.trim().length > 0 && agreed && partyValid;
+  const tooManyMembers = max > MAX_PARTY_MEMBERS;
+  const partyValid =
+    !isParty || (!!service && current >= 1 && max >= 2 && !tooManyMembers && current < max && price > 0);
+  const canSubmit = title.trim().length > 0 && content.trim().length > 0 && agreed && partyValid && !submitting;
 
   const submit = () => {
-    if (!canSubmit || !serviceId) return;
+    if (!canSubmit) return;
     onSubmit({
       board,
-      serviceId,
+      serviceName: service?.name ?? null,
       title: title.trim(),
       content: content.trim(),
-      party: isParty ? { currentMembers: current, maxMembers: max, pricePerMember: price } : undefined,
+      party:
+        isParty && service
+          ? {
+              currentMembers: current,
+              maxMembers: max,
+              pricePerMember: price,
+              totalPrice: service.monthlyPrice,
+              settlementDay: service.cycle === 'monthly' ? Number(service.nextBillingDate.slice(8, 10)) : null,
+            }
+          : undefined,
     });
   };
 
@@ -84,7 +117,7 @@ export function WritePostScreen({ subscriptions, initialBoard = 'party', onBack,
             />
           </FormField>
 
-          <FormField label="서비스">
+          <FormField label={isParty ? '서비스' : '서비스 (선택)'}>
             <FormSelect value={service?.name} placeholder="서비스 선택" onPress={() => setOpenSheet('service')} />
           </FormField>
 
@@ -136,6 +169,9 @@ export function WritePostScreen({ subscriptions, initialBoard = 'party', onBack,
               </FormField>
             </View>
           ) : null}
+          {isParty && tooManyMembers ? (
+            <Text style={styles.fieldError}>{`전체 인원은 ${MAX_PARTY_MEMBERS}명까지 모집할 수 있어요.`}</Text>
+          ) : null}
 
           <FormField label="내용">
             <View style={[formStyles.box, styles.contentBox]}>
@@ -169,7 +205,8 @@ export function WritePostScreen({ subscriptions, initialBoard = 'party', onBack,
         </ScrollView>
 
         <View style={styles.footer}>
-          <Button size="md" title="게시하기" disabled={!canSubmit} onPress={submit} />
+          {submitError ? <Text style={styles.submitError}>{submitError}</Text> : null}
+          <Button size="md" title={submitting ? '게시 중…' : '게시하기'} disabled={!canSubmit} onPress={submit} />
         </View>
       </KeyboardAvoidingView>
 
@@ -197,6 +234,16 @@ export function WritePostScreen({ subscriptions, initialBoard = 'party', onBack,
 }
 
 const styles = StyleSheet.create({
+  fieldError: {
+    ...typography.small,
+    color: colors.danger,
+  },
+  submitError: {
+    ...typography.small,
+    marginBottom: spacing.sm,
+    textAlign: 'center',
+    color: colors.danger,
+  },
   safeArea: {
     flex: 1,
     backgroundColor: colors.backgroundMuted,
