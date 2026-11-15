@@ -1,5 +1,5 @@
 import { Fragment, useMemo, useState } from 'react';
-import { LayoutAnimation, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, LayoutAnimation, Pressable, ScrollView, StyleSheet, Text, View, type TextStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import CalendarIcon from '@/assets/icons/calendar.svg';
@@ -9,21 +9,42 @@ import CollapseIcon from '@/assets/icons/collapse.svg';
 import { Card } from '@/components/common/Card';
 import { PageHeader } from '@/components/common/PageHeader';
 import { SectionHeader } from '@/components/common/SectionHeader';
+import { groupByDate, type MonthKind, type MonthPayment } from '@/features/payment/utils/monthlyPayments';
 import { SubscriptionRow } from '@/features/subscription/components/SubscriptionRow';
 import type { Subscription } from '@/features/subscription/types';
-import { findNextPayments, groupRenewalsByDate } from '@/features/subscription/utils/renewal';
+import { findNextPayments } from '@/features/subscription/utils/renewal';
 import { useVerticalSwipe } from '@/hooks/useVerticalSwipe';
 import { colors, radius, spacing, typography } from '@/theme';
-import { parseDateKey, shiftMonth, todayKey, type DateKey } from '@/utils/date';
+import { parseDateKey, todayKey, type DateKey } from '@/utils/date';
 import { formatMonthDay, formatRelativeDay, formatWon } from '@/utils/format';
 
 import { DayPaymentsSheet } from '../components/DayPaymentsSheet';
 import { ExpandedMonthCalendar } from '../components/ExpandedMonthCalendar';
 import { MonthCalendar } from '../components/MonthCalendar';
 
+const NO_SUBSCRIPTIONS: Subscription[] = [];
+
+/** 요약 카드 문구. 지난달은 실제 결제 내역, 이번 달은 결제 완료 + 예정, 다음 달 이후는 예정 */
+function summaryLabel(kind: MonthKind, month: number) {
+  if (kind === 'past') return `${month}월 결제 내역`;
+  if (kind === 'current') return '이번 달 결제';
+  return `${month}월 결제 예정`;
+}
+
 type CalendarScreenProps = {
-  /** 서버 구독 목록 (해지·일시정지는 제외해서 넘긴다) */
+  /** 지금 이용 중인 구독 (해지·일시정지 제외). '가장 가까운 결제' 에 쓴다 */
   subscriptions: Subscription[];
+  /** 보고 있는 달 */
+  year: number;
+  month: number;
+  kind: MonthKind;
+  /** 그 달 결제 목록 (청구 기록 + 예정, features/payment/utils/monthlyPayments.ts). 불러오는 중이면 null */
+  monthPayments: MonthPayment[] | null;
+  /** 불러오기 실패 안내 */
+  errorMessage?: string;
+  onRetry?: () => void;
+  /** -1 이전 달, 1 다음 달 */
+  onChangeMonth: (delta: number) => void;
   /** 기준 '오늘'. 기본값은 기기 날짜 */
   today?: DateKey;
   /** 처음부터 결제 시트를 열어 둘 날짜 (딥링크 등) */
@@ -34,28 +55,53 @@ type CalendarScreenProps = {
 
 export function CalendarScreen({
   subscriptions,
+  year,
+  month,
+  kind,
+  monthPayments,
+  errorMessage,
+  onRetry,
+  onChangeMonth,
   today = todayKey(),
   initialSelectedDate,
   initialExpanded = false,
 }: CalendarScreenProps) {
-  const [visibleMonth, setVisibleMonth] = useState(() => {
-    const { year, month } = parseDateKey(initialSelectedDate ?? today);
-    return { year, month };
-  });
   const [selectedDate, setSelectedDate] = useState<DateKey | null>(initialSelectedDate ?? null);
   const [expanded, setExpanded] = useState(initialExpanded);
-  const { year, month } = visibleMonth;
 
-  const renewals = useMemo(() => groupRenewalsByDate(subscriptions, year, month), [subscriptions, year, month]);
+  const byDate = useMemo(() => groupByDate(monthPayments ?? []), [monthPayments]);
+  const renewals = useMemo(
+    () => new Map([...byDate].map(([date, list]) => [date, list.map((p) => p.subscription)])),
+    [byDate],
+  );
   const renewalCounts = useMemo(
     () => new Map([...renewals].map(([date, subs]) => [date, subs.length])),
     [renewals],
   );
-  const monthRenewals = [...renewals.values()].flat();
-  const monthlyTotal = monthRenewals.reduce((sum, s) => sum + s.price, 0);
+  const monthCount = monthPayments?.length ?? 0;
+  const monthlyTotal = (monthPayments ?? []).reduce((sum, p) => sum + p.subscription.price, 0);
   const nextPayments = findNextPayments(subscriptions, today);
+  const label = summaryLabel(kind, month);
 
-  const moveMonth = (delta: number) => setVisibleMonth((current) => shiftMonth(current, delta));
+  // 고른 날이 지났거나 그날 결제가 모두 청구 기록이면 '결제 완료'
+  const selectedPayments = selectedDate ? byDate.get(selectedDate) : undefined;
+  const selectedPaid =
+    selectedDate !== null && (selectedDate < today || (!!selectedPayments && selectedPayments.every((p) => p.paid)));
+
+  const moveMonth = (delta: number) => onChangeMonth(delta);
+
+  // 요약 금액 자리: 불러오는 중 / 실패 / 합계
+  const renderTotal = (style: TextStyle) => {
+    if (errorMessage) {
+      return (
+        <Pressable accessibilityRole="button" hitSlop={8} onPress={onRetry}>
+          <Text style={styles.summaryError}>{`${errorMessage} 다시 시도`}</Text>
+        </Pressable>
+      );
+    }
+    if (monthPayments === null) return <ActivityIndicator color={colors.primary} />;
+    return <Text style={style}>{formatWon(monthlyTotal)}</Text>;
+  };
   const toggleExpanded = (next: boolean) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setExpanded(next);
@@ -96,7 +142,8 @@ export function CalendarScreen({
   const sheet = (
     <DayPaymentsSheet
       date={selectedDate}
-      subscriptions={selectedDate ? (renewals.get(selectedDate) ?? []) : []}
+      subscriptions={selectedDate ? (renewals.get(selectedDate) ?? NO_SUBSCRIPTIONS) : NO_SUBSCRIPTIONS}
+      paid={selectedPaid}
       onClose={() => setSelectedDate(null)}
     />
   );
@@ -117,11 +164,11 @@ export function CalendarScreen({
           </View>
 
           <View style={styles.compactSummary}>
-            <Text style={styles.compactSummaryLabel}>이번 달 결제 예정</Text>
+            <Text style={styles.compactSummaryLabel}>{label}</Text>
             <View style={styles.compactSummaryBadge}>
-              <Text style={styles.compactSummaryBadgeText}>{`${monthRenewals.length}개 구독`}</Text>
+              <Text style={styles.compactSummaryBadgeText}>{`${monthCount}개 구독`}</Text>
             </View>
-            <Text style={styles.compactSummaryTotal}>{formatWon(monthlyTotal)}</Text>
+            {renderTotal(styles.compactSummaryTotal)}
           </View>
 
           <View style={styles.expandedCalendar} {...collapseSwipe}>
@@ -137,7 +184,7 @@ export function CalendarScreen({
 
           <View style={styles.legend}>
             <View style={styles.legendDot} />
-            <Text style={styles.legendText}>결제 예정일</Text>
+            <Text style={styles.legendText}>{kind === 'past' ? '결제일' : '결제 예정일'}</Text>
             <View style={styles.legendToday} />
             <Text style={styles.legendText}>{`오늘 ${parseDateKey(today).day}일`}</Text>
           </View>
@@ -154,10 +201,10 @@ export function CalendarScreen({
       <ScrollView contentContainerStyle={styles.content}>
         <Card style={styles.summaryCard}>
           <View style={styles.summaryHeading}>
-            <Text style={styles.summaryLabel}>이번 달 결제 예정</Text>
-            <Text style={styles.summaryCount}>{`${monthRenewals.length}개 구독`}</Text>
+            <Text style={styles.summaryLabel}>{label}</Text>
+            <Text style={styles.summaryCount}>{`${monthCount}개 구독`}</Text>
           </View>
-          <Text style={styles.summaryTotal}>{formatWon(monthlyTotal)}</Text>
+          {renderTotal(styles.summaryTotal)}
         </Card>
 
         <View {...expandSwipe}>
@@ -322,5 +369,9 @@ const styles = StyleSheet.create({
   legendText: {
     ...typography.tiny,
     color: colors.textMuted,
+  },
+  summaryError: {
+    ...typography.small,
+    color: colors.danger,
   },
 });

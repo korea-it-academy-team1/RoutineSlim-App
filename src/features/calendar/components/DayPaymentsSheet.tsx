@@ -18,18 +18,23 @@ type DayPaymentsSheetProps = {
   /** 선택된 날짜. null 이면 시트를 닫는다 */
   date: DateKey | null;
   subscriptions: Subscription[];
+  /** 이미 지난 결제(청구 기록)면 true → '결제 완료' 로 표시 */
+  paid?: boolean;
   onClose: () => void;
 };
 
-export function DayPaymentsSheet({ date, subscriptions, onClose }: DayPaymentsSheetProps) {
+export function DayPaymentsSheet({ date, subscriptions, paid = false, onClose }: DayPaymentsSheetProps) {
   const insets = useSafeAreaInsets();
   const [progress] = useState(() => new Animated.Value(0));
   const [mounted, setMounted] = useState(date !== null);
 
   // 닫히는 애니메이션 동안에도 마지막 내용을 유지한다.
-  // (렌더 중 ref 대신 state 로 — React Compiler 규칙. 새 날짜가 열릴 때만 갱신)
-  const [shown, setShown] = useState({ date, subscriptions });
-  if (date && date !== shown.date) setShown({ date, subscriptions });
+  // (렌더 중 ref 대신 state 로 — React Compiler 규칙. 열려 있는 동안 날짜·내용이 바뀌면 갱신)
+  // 달을 넘기면 결제 목록을 서버에서 불러오므로, 열린 뒤에 내용이 채워질 수 있다
+  const [shown, setShown] = useState({ date, subscriptions, paid });
+  if (date && (date !== shown.date || subscriptions !== shown.subscriptions || paid !== shown.paid)) {
+    setShown({ date, subscriptions, paid });
+  }
 
   useEffect(() => {
     if (date) {
@@ -72,7 +77,7 @@ export function DayPaymentsSheet({ date, subscriptions, onClose }: DayPaymentsSh
           </View>
 
           <View style={styles.totalRow}>
-            <Badge label={`결제 예정 ${shown.subscriptions.length}개`} />
+            <Badge label={`${shown.paid ? '결제 완료' : '결제 예정'} ${shown.subscriptions.length}개`} />
             <Text style={styles.total}>{formatWon(total)}</Text>
           </View>
 
@@ -85,7 +90,9 @@ export function DayPaymentsSheet({ date, subscriptions, onClose }: DayPaymentsSh
               ))}
             </ScrollView>
           ) : (
-            <Text style={styles.empty}>이 날은 결제 예정인 구독이 없어요</Text>
+            <Text style={styles.empty}>
+              {shown.paid ? '이 날은 결제한 구독이 없어요' : '이 날은 결제 예정인 구독이 없어요'}
+            </Text>
           )}
         </View>
       </Animated.View>

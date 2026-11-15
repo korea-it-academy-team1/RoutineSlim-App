@@ -21,12 +21,12 @@ export function CategoryBreakdownCard({ categories }: CategoryBreakdownCardProps
             <Text style={styles.categoryName}>{CATEGORY_META[c.category].label}</Text>
             <Text style={styles.categoryTotal}>{formatWon(c.total)}</Text>
           </View>
-          {c.subscriptions.map((s) => (
-            <View key={s.id} style={styles.itemRow}>
+          {c.items.map((item) => (
+            <View key={item.id} style={styles.itemRow}>
               <Text style={styles.itemName} numberOfLines={1}>
-                {s.name}
+                {item.name}
               </Text>
-              <Text style={styles.itemPrice}>{formatWon(s.price)}</Text>
+              <Text style={styles.itemPrice}>{formatWon(item.amount)}</Text>
             </View>
           ))}
         </View>
