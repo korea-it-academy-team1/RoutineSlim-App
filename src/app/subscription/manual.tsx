@@ -1,26 +1,13 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
 
-import { createSubscription, type BillingCycleDto } from '@/features/subscription/api/subscriptionApi';
+import { createSubscription } from '@/features/subscription/api/subscriptionApi';
+import { CATEGORY_ID } from '@/features/subscription/categories';
 import {
   ManualSubscriptionScreen,
   type SubscriptionDraft,
 } from '@/features/subscription/screens/ManualSubscriptionScreen';
-import type { SubscriptionCategory } from '@/features/subscription/types';
-
-/** 서버 subscription_category 번호 (V2__seed_categories_presets.sql) */
-const CATEGORY_ID: Record<SubscriptionCategory, number> = {
-  ott: 1,
-  music: 2,
-  cloud: 3,
-  shopping: 4,
-};
-
-const BILLING_CYCLE: Record<SubscriptionDraft['cycle'], BillingCycleDto> = {
-  weekly: 'WEEKLY',
-  monthly: 'MONTHLY',
-  yearly: 'YEARLY',
-};
+import { BILLING_CYCLE_DTO } from '@/features/subscription/utils/billingForm';
 
 export default function ManualSubscriptionRoute() {
   const [submitting, setSubmitting] = useState(false);
@@ -36,7 +23,7 @@ export default function ManualSubscriptionRoute() {
         name: draft.name,
         categoryId: CATEGORY_ID[draft.category],
         amount: draft.price,
-        billingCycle: BILLING_CYCLE[draft.cycle],
+        billingCycle: BILLING_CYCLE_DTO[draft.cycle],
         startDate: draft.startDate,
         memo: draft.memo ?? null,
       });

@@ -11,3 +11,12 @@ export const CATEGORY_META: Record<SubscriptionCategory, { label: string; color:
   cloud: { label: '클라우드', color: colors.categoryCloud },
   shopping: { label: '쇼핑', color: colors.categoryShopping },
 };
+
+/** 서버 subscription_category 번호 (V2__seed_categories_presets.sql 의 입력 순서) */
+export const CATEGORY_ID: Record<SubscriptionCategory, number> = { ott: 1, music: 2, cloud: 3, shopping: 4 };
+
+/** 서버 카테고리 번호 → 앱 카테고리. 모르는 번호면 null */
+export function categoryFromId(id: number | null | undefined): SubscriptionCategory | null {
+  const found = CATEGORY_ORDER.find((c) => CATEGORY_ID[c] === id);
+  return found ?? null;
+}

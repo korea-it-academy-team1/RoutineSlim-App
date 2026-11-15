@@ -1,5 +1,6 @@
 import { toDateKey, type DateKey } from '@/utils/date';
 
+import type { BillingCycleDto } from '../api/subscriptionApi';
 import type { Subscription } from '../types';
 
 export type BillingCycle = Subscription['cycle'];
@@ -8,6 +9,13 @@ export const CYCLE_OPTIONS: { value: BillingCycle; label: string }[] = [
   { value: 'monthly', label: '매월' },
   { value: 'yearly', label: '매년' },
 ];
+
+/** 앱 결제 주기 → 서버 billingCycle */
+export const BILLING_CYCLE_DTO: Record<BillingCycle, BillingCycleDto> = {
+  weekly: 'WEEKLY',
+  monthly: 'MONTHLY',
+  yearly: 'YEARLY',
+};
 
 export const digitsOnly = (text: string) => text.replace(/[^0-9]/g, '');
 

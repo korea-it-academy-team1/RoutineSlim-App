@@ -34,7 +34,14 @@
         }
       ],
       "expo-sqlite",
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "영수증이나 결제 내역 이미지로 구독을 등록하려면 사진 접근 권한이 필요해요.",
+          "cameraPermission": "영수증을 촬영해 구독을 등록하려면 카메라 권한이 필요해요."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

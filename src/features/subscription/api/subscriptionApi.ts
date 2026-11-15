@@ -110,10 +110,64 @@ export type SubscriptionCreateBody = {
   billingCycle: BillingCycleDto;
   /** 'YYYY-MM-DD' */
   startDate: string;
+  /** 프리셋(service_preset)에서 골랐으면 그 번호 */
+  presetId?: number | null;
   cardId?: number | null;
   memo?: string | null;
 };
 
 export function createSubscription(body: SubscriptionCreateBody) {
   return authorizedRequest<SubscriptionDto>('/api/v1/subscriptions', { method: 'POST', body });
+}
+
+/** 서버 SubscriptionUpdateRequest (전체 값을 보낸다) */
+export type SubscriptionUpdateBody = SubscriptionCreateBody & {
+  currency?: string;
+  cycleInterval?: number;
+  trialEndDate?: string | null;
+  notifyEnabled?: boolean;
+  notifyDaysBefore?: number | null;
+};
+
+export function getSubscription(id: string) {
+  return authorizedRequest<SubscriptionDto>(`/api/v1/subscriptions/${id}`);
+}
+
+export function updateSubscription(id: string, body: SubscriptionUpdateBody) {
+  return authorizedRequest<SubscriptionDto>(`/api/v1/subscriptions/${id}`, { method: 'PUT', body });
+}
+
+/** 서버 SubscriptionScanResponse. 못 읽은 값은 null */
+export type SubscriptionScanDto = {
+  fileName: string | null;
+  name: string | null;
+  presetId: number | null;
+  categoryId: number | null;
+  amount: number | null;
+  billingCycle: BillingCycleDto;
+  /** 영수증 결제일 'YYYY-MM-DD' */
+  startDate: string | null;
+  /** 결제일과 주기로 계산한 다음 결제일 */
+  nextBillingDate: string | null;
+  presetMatched: boolean;
+  recognized: { storeName: string | null; itemNames: string[] } | null;
+};
+
+/** 올릴 이미지. 웹은 File, 앱(iOS·Android)은 uri 로 보낸다 */
+export type ReceiptImage = { uri: string; name: string; type: string; file?: File };
+
+/**
+ * 영수증·결제 내역 이미지 인식 (저장하지 않음).
+ * POST /api/v1/subscriptions/scan  multipart/form-data, 필드 이름 image. jpg, png, pdf, 최대 10MB
+ * 서버에 CLOVA OCR 설정이 없으면 503 (application-local.yml 의 clova.ocr.url / secret)
+ */
+export function scanReceipt(image: ReceiptImage) {
+  const form = new FormData();
+  if (image.file) {
+    form.append('image', image.file, image.name);
+  } else {
+    // React Native 의 FormData 는 { uri, name, type } 객체를 파일로 보낸다
+    form.append('image', { uri: image.uri, name: image.name, type: image.type } as unknown as Blob);
+  }
+  return authorizedRequest<SubscriptionScanDto>('/api/v1/subscriptions/scan', { method: 'POST', body: form });
 }

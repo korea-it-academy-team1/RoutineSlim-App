@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import CameraIcon from '@/assets/icons/camera-primary.svg';
@@ -15,9 +15,19 @@ type ScanSubscriptionScreenProps = {
   onBack: () => void;
   onPickFromAlbum?: () => void;
   onTakePhoto?: () => void;
+  /** 이미지를 올려 인식하는 중 */
+  scanning?: boolean;
+  /** 선택·인식 실패 안내 */
+  errorMessage?: string;
 };
 
-export function ScanSubscriptionScreen({ onBack, onPickFromAlbum, onTakePhoto }: ScanSubscriptionScreenProps) {
+export function ScanSubscriptionScreen({
+  onBack,
+  onPickFromAlbum,
+  onTakePhoto,
+  scanning = false,
+  errorMessage,
+}: ScanSubscriptionScreenProps) {
   return (
     <SafeAreaView edges={['top', 'bottom']} style={styles.safeArea}>
       <BackHeader title="영수증/캡처 스캔" onBack={onBack} />
@@ -28,7 +38,16 @@ export function ScanSubscriptionScreen({ onBack, onPickFromAlbum, onTakePhoto }:
           <Text style={styles.subtitle}>{'영수증 또는 결제 내역을 올려주세요.\n구독 정보를 자동으로 찾아드릴게요.'}</Text>
         </View>
 
-        <ImageUploadArea onPress={onPickFromAlbum} />
+        {scanning ? (
+          <View style={styles.scanning}>
+            <ActivityIndicator color={colors.primary} />
+            <Text style={styles.scanningText}>영수증을 읽고 있어요…</Text>
+          </View>
+        ) : (
+          <ImageUploadArea onPress={onPickFromAlbum} />
+        )}
+
+        {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
 
         <Card style={styles.tip}>
           <View style={styles.tipHeading}>
@@ -44,6 +63,7 @@ export function ScanSubscriptionScreen({ onBack, onPickFromAlbum, onTakePhoto }:
           size="md"
           title="앨범에서 선택"
           icon={<ImageIcon width={20} height={20} />}
+          disabled={scanning}
           onPress={onPickFromAlbum}
         />
         <Button
@@ -51,6 +71,7 @@ export function ScanSubscriptionScreen({ onBack, onPickFromAlbum, onTakePhoto }:
           variant="secondary"
           title="사진 촬영"
           icon={<CameraIcon width={20} height={20} />}
+          disabled={scanning}
           onPress={onTakePhoto}
           titleStyle={styles.secondaryTitle}
         />
@@ -98,6 +119,21 @@ const styles = StyleSheet.create({
   tipBody: {
     ...typography.captionSm,
     color: colors.textSubtle,
+  },
+  scanning: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.md,
+    minHeight: 160,
+  },
+  scanningText: {
+    ...typography.body,
+    color: colors.textSubtle,
+  },
+  error: {
+    ...typography.small,
+    color: colors.danger,
+    textAlign: 'center',
   },
   spacer: {
     flex: 1,
