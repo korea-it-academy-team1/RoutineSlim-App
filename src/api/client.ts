@@ -44,6 +44,8 @@ type ServerError = {
   status?: number;
   error?: string;
   message?: string;
+  /** ProblemDetail(RFC 9457) 형식 오류의 설명. 서버는 problemdetails 가 켜져 있어 대부분 이 값으로 온다 */
+  detail?: string;
 };
 
 /** 서버가 message 를 주지 않았을 때 쓰는 기본 문구 */
@@ -58,7 +60,7 @@ function defaultMessage(status: number) {
 export type RequestOptions = {
   /** 기본 GET */
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
-  /** 객체를 넘기면 JSON 으로 보낸다 */
+  /** 객체를 넘기면 JSON 으로 보낸다. FormData 는 그대로 보낸다 (파일 업로드) */
   body?: unknown;
 
   // [1번 임시 - 이대수] 로그인한 회원 UUID. 있으면 X-Member-Id 헤더로 보낸다 (로그인이 필요한 API)
@@ -76,8 +78,10 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   const { method = 'GET', body } = options;
 
   // (1) 헤더: body 가 있을 때만 Content-Type
+  //     FormData 는 fetch 가 boundary 를 붙인 multipart Content-Type 을 직접 넣으므로 비워 둔다
+  const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
   const headers: Record<string, string> = { Accept: 'application/json' };
-  if (body !== undefined) headers['Content-Type'] = 'application/json';
+  if (body !== undefined && !isFormData) headers['Content-Type'] = 'application/json';
 
   // [1번 임시 - 이대수] 회원 UUID 가 있을 때만 X-Member-Id
   if (options.memberId) headers['X-Member-Id'] = options.memberId;
@@ -92,7 +96,7 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
       method,
       headers,
       // GET 등 body 가 없는 요청에는 body 를 넣지 않는다
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body: body === undefined ? undefined : isFormData ? (body as FormData) : JSON.stringify(body),
     });
   } catch {
     throw new ApiError('NETWORK_ERROR', '서버에 연결할 수 없어요. 잠시 후 다시 시도해 주세요.', 0);
@@ -106,7 +110,7 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
     const serverError = json as ServerError | null;
     throw new ApiError(
       `HTTP_${response.status}`,
-      serverError?.message || defaultMessage(response.status),
+      serverError?.detail || serverError?.message || defaultMessage(response.status),
       response.status,
     );
   }

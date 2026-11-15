@@ -15,8 +15,9 @@ import { colors, radius, spacing, typography } from '@/theme';
 import type { DateKey } from '@/utils/date';
 import { formatWon } from '@/utils/format';
 
+import { CATEGORY_META, CATEGORY_ORDER } from '../categories';
 import { ServiceLogoView } from '../components/ServiceLogoView';
-import type { ScanResult, ServiceLogo, Subscription } from '../types';
+import type { ScanResult, ServiceLogo, Subscription, SubscriptionCategory } from '../types';
 import {
   CYCLE_OPTIONS,
   digitsOnly,
@@ -27,12 +28,17 @@ import {
 
 export type ScanResultDraft = {
   name: string;
+  category: SubscriptionCategory;
+  /** 스캔에서 맞은 프리셋 (서비스 이름을 바꾸지 않았을 때만) */
+  presetId: number | null;
   price: number;
   cycle: BillingCycle;
   nextBillingDate: DateKey;
   /** 이미 등록된 구독이면 그 id (업데이트 대상) */
   existingId?: string;
 };
+
+const CATEGORY_OPTIONS = CATEGORY_ORDER.map((c) => ({ value: c, label: CATEGORY_META[c].label }));
 
 /** 등록된 구독이 아니면 서비스 이름 첫 글자로 로고를 대신한다 */
 function fallbackLogo(name: string): ServiceLogo {
@@ -46,27 +52,50 @@ type ScanResultScreenProps = {
   onBack: () => void;
   onPreviewSource?: () => void;
   onSubmit: (draft: ScanResultDraft) => void;
+  /** 저장 요청 중 */
+  submitting?: boolean;
+  /** 저장 실패 안내 */
+  errorMessage?: string;
 };
 
-export function ScanResultScreen({ result, subscriptions, onBack, onPreviewSource, onSubmit }: ScanResultScreenProps) {
+export function ScanResultScreen({
+  result,
+  subscriptions,
+  onBack,
+  onPreviewSource,
+  onSubmit,
+  submitting = false,
+  errorMessage,
+}: ScanResultScreenProps) {
   const [name, setName] = useState(result.name);
-  const [priceInput, setPriceInput] = useState(String(result.price));
+  const [category, setCategory] = useState<SubscriptionCategory | null>(result.category);
+  const [priceInput, setPriceInput] = useState(result.price ? String(result.price) : '');
   const [priceFocused, setPriceFocused] = useState(false);
   const [cycle, setCycle] = useState<BillingCycle>(result.cycle);
-  const [dateInput, setDateInput] = useState(formatDateInput(result.nextBillingDate));
-  const [cycleSheetOpen, setCycleSheetOpen] = useState(false);
+  const [dateInput, setDateInput] = useState(result.nextBillingDate ? formatDateInput(result.nextBillingDate) : '');
+  const [openSheet, setOpenSheet] = useState<'category' | 'cycle' | null>(null);
 
   const price = Number(priceInput) || 0;
   const nextBillingDate = parseDateInput(dateInput);
   const existing = subscriptions.find((s) => s.name === name.trim());
-  const canSubmit = name.trim().length > 0 && price > 0 && !!nextBillingDate;
+  const canSubmit = name.trim().length > 0 && !!category && price > 0 && !!nextBillingDate && !submitting;
+  // 인식한 값이 하나라도 비어 있으면 안내 문구를 바꾼다
+  const complete = !!result.name && !!result.price && !!result.nextBillingDate && !!result.category;
 
   // 편집 중에는 숫자만, 아닐 때는 시안처럼 '17,000원'으로 보여준다
   const priceText = price > 0 ? (priceFocused ? price.toLocaleString('ko-KR') : formatWon(price)) : '';
 
   const submit = () => {
-    if (!canSubmit || !nextBillingDate) return;
-    onSubmit({ name: name.trim(), price, cycle, nextBillingDate, existingId: existing?.id });
+    if (!canSubmit || !nextBillingDate || !category) return;
+    onSubmit({
+      name: name.trim(),
+      category,
+      presetId: name.trim() === result.name ? result.presetId : null,
+      price,
+      cycle,
+      nextBillingDate,
+      existingId: existing?.id,
+    });
   };
 
   return (
@@ -79,7 +108,9 @@ export function ScanResultScreen({ result, subscriptions, onBack, onPreviewSourc
             <CircleCheckIcon width={20} height={20} />
             <View style={styles.successText}>
               <Text style={styles.successTitle}>구독 정보를 찾았어요</Text>
-              <Text style={styles.successBody}>정보가 맞는지 확인하고 수정해주세요.</Text>
+              <Text style={styles.successBody}>
+                {complete ? '정보가 맞는지 확인하고 수정해주세요.' : '읽지 못한 칸을 채워주세요.'}
+              </Text>
             </View>
           </View>
 
@@ -108,6 +139,14 @@ export function ScanResultScreen({ result, subscriptions, onBack, onPreviewSourc
             />
           </FormField>
 
+          <FormField label="카테고리">
+            <FormSelect
+              value={category ? CATEGORY_META[category].label : undefined}
+              placeholder="카테고리 선택"
+              onPress={() => setOpenSheet('category')}
+            />
+          </FormField>
+
           <FormField label="결제 금액">
             <FormInput
               value={priceText}
@@ -125,7 +164,7 @@ export function ScanResultScreen({ result, subscriptions, onBack, onPreviewSourc
             <FormSelect
               value={CYCLE_OPTIONS.find((o) => o.value === cycle)?.label}
               placeholder="결제 주기"
-              onPress={() => setCycleSheetOpen(true)}
+              onPress={() => setOpenSheet('cycle')}
             />
           </FormField>
 
@@ -148,19 +187,34 @@ export function ScanResultScreen({ result, subscriptions, onBack, onPreviewSourc
             </View>
           ) : null}
 
+          {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
+
           <View style={styles.spacer} />
 
-          <Button size="md" title={existing ? '확인하고 업데이트' : '구독 저장'} disabled={!canSubmit} onPress={submit} />
+          <Button
+            size="md"
+            title={submitting ? '저장 중…' : existing ? '확인하고 업데이트' : '구독 저장'}
+            disabled={!canSubmit}
+            onPress={submit}
+          />
         </ScrollView>
       </KeyboardAvoidingView>
 
       <OptionSheet
-        visible={cycleSheetOpen}
+        visible={openSheet === 'category'}
+        title="카테고리"
+        options={CATEGORY_OPTIONS}
+        selected={category}
+        onSelect={setCategory}
+        onClose={() => setOpenSheet(null)}
+      />
+      <OptionSheet
+        visible={openSheet === 'cycle'}
         title="결제 주기"
         options={CYCLE_OPTIONS}
         selected={cycle}
         onSelect={setCycle}
-        onClose={() => setCycleSheetOpen(false)}
+        onClose={() => setOpenSheet(null)}
       />
     </SafeAreaView>
   );
@@ -229,6 +283,11 @@ const styles = StyleSheet.create({
     ...typography.captionSm,
     flex: 1,
     color: colors.textSubtle,
+  },
+  error: {
+    ...typography.small,
+    color: colors.danger,
+    textAlign: 'center',
   },
   spacer: {
     flex: 1,

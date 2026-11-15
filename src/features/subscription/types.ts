@@ -49,12 +49,18 @@ export type Subscription = {
   cycle: 'monthly' | 'yearly' | 'weekly';
 };
 
-/** 영수증·결제 내역 이미지 인식 결과 (스캔 결과 확인 화면 입력값) */
+/**
+ * 영수증·결제 내역 이미지 인식 결과 (스캔 결과 확인 화면 입력값).
+ * 서버가 못 읽은 값은 null 이고, 화면에서 사용자가 채운다.
+ */
 export type ScanResult = {
   /** 인식한 이미지 설명과 파일 이름 */
   source: { title: string; fileName: string };
   name: string;
-  price: number;
+  price: number | null;
   cycle: Subscription['cycle'];
-  nextBillingDate: DateKey;
+  nextBillingDate: DateKey | null;
+  /** 프리셋과 맞으면 그 카테고리, 아니면 null → 사용자가 선택 */
+  category: SubscriptionCategory | null;
+  presetId: number | null;
 };
