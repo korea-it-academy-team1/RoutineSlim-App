@@ -38,6 +38,18 @@ export function login(credentials: LoginCredentials) {
   return request<string>('/auth/login', { method: 'POST', body: toLoginBody(credentials) });
 }
 
+/** [소셜 로그인 - 권기쁨] 서버 SocialProvider enum 값 (대문자) */
+export type ServerSocialProvider = 'GOOGLE' | 'KAKAO' | 'NAVER';
+
+/**
+ * [소셜 로그인 - 권기쁨] 소셜 로그인 → 회원 UUID 문자열 (1번 방식)
+ * - token: 각 회사에서 받은 access token. 서버가 그 회사 사용자 정보 API 로 검증한다
+ * - 처음 로그인하는 사람이면 서버가 회원을 새로 만든다 (SocialLoginServiceImpl)
+ */
+export function socialLogin(provider: ServerSocialProvider, token: string) {
+  return request<string>('/auth/social/login', { method: 'POST', body: { provider, token } });
+}
+
 //// [JWT 로그인 - 이대수] 서버 TokenResponseDTO (로그인·재발급 응답)
 //export type AuthTokens = {
 //  /** API 호출용 토큰 (JWT). 수명 30분 */

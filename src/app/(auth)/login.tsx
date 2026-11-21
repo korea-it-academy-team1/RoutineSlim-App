@@ -4,7 +4,9 @@ import { useState } from 'react';
 import { ApiError } from '@/api/client';
 import type { LoginCredentials } from '@/features/auth/api/authApi';
 import { useAuthStore } from '@/features/auth/authStore';
+import type { SocialProvider } from '@/features/auth/components/SocialLoginButtons';
 import { LoginScreen } from '@/features/auth/screens/LoginScreen';
+import { useGoogleLogin } from '@/features/auth/social/useGoogleLogin';
 
 /*
  * [로그인 구현 7/9] 로그인 라우트: 화면(6번)과 로그인 상태(4번)를 연결한다
@@ -65,5 +67,48 @@ export default function LoginRoute() {
     }
   };
 
-  return <LoginScreen onLogin={handleLogin} errorMessage={errorMessage} submitting={submitting} />;
+  // [소셜 로그인 - 권기쁨] 구글에서 받은 access token 을 서버로 보내 회원 UUID 를 받는다
+  const signInWithSocial = useAuthStore((state) => state.signInWithSocial);
+
+  const handleGoogleToken = async (accessToken: string) => {
+    setSubmitting(true);
+    setErrorMessage(null);
+    try {
+      await signInWithSocial('GOOGLE', accessToken);
+      router.replace('/home');
+    } catch (error) {
+      setErrorMessage(
+        error instanceof ApiError && error.code === 'NETWORK_ERROR'
+          ? error.message
+          : '구글 로그인을 완료하지 못했어요. 같은 이메일로 이미 가입했는지 확인해 주세요.',
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const google = useGoogleLogin({ onToken: handleGoogleToken, onError: setErrorMessage });
+
+  const handleSocialLogin = (provider: SocialProvider) => {
+    setErrorMessage(null);
+    if (provider !== 'google') {
+      setErrorMessage('카카오·네이버 로그인은 준비 중이에요.');
+      return;
+    }
+    if (!google.configured) {
+      setErrorMessage('구글 로그인 설정이 아직 없어요. (.env.local 의 EXPO_PUBLIC_GOOGLE_*_CLIENT_ID)');
+      return;
+    }
+    if (!google.ready) return; // 요청 준비 중 (아주 잠깐)
+    google.start();
+  };
+
+  return (
+    <LoginScreen
+      onLogin={handleLogin}
+      onSocialLogin={handleSocialLogin}
+      errorMessage={errorMessage}
+      submitting={submitting}
+    />
+  );
 }
