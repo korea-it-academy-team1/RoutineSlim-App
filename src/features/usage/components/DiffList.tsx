@@ -57,7 +57,7 @@ export function DiffList({ rows }: { rows: DiffRow[] }) {
                   {subscription.name}
                   <Text style={styles.unchangedDetail}>{`  · ${row.detail}`}</Text>
                 </Text>
-                <Text style={styles.unchangedPrice}>{formatWon(subscription.price)}</Text>
+                <Text style={styles.unchangedPrice}>{formatWon(row.price)}</Text>
               </View>
             ) : (
               <View style={styles.body}>
@@ -71,7 +71,7 @@ export function DiffList({ rows }: { rows: DiffRow[] }) {
                   <Text style={[styles.detail, { color: kind.color }]}>{row.detail}</Text>
                 </View>
                 <View style={styles.prices}>
-                  <Text style={styles.oldPrice}>{formatWon(subscription.price)}</Text>
+                  <Text style={styles.oldPrice}>{formatWon(row.price)}</Text>
                   <Text style={[styles.newPrice, { color: kind.color }]}>{formatWon(row.newPrice)}</Text>
                 </View>
               </View>

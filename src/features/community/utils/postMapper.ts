@@ -6,9 +6,24 @@
  */
 import { getServiceBrand } from '@/features/subscription/serviceBrands';
 
-import type { CommentDto, CommunityBoardDto, PostDto, PostRequestDto } from '../api/communityApi';
+import type {
+  CommentDto,
+  CommunityBoardDto,
+  PartyRequestDto,
+  PartyStatusDto,
+  PostDto,
+  PostRequestDto,
+} from '../api/communityApi';
 import type { PostDraft } from '../screens/WritePostScreen';
-import type { CommunityBoard, CommunityPost, GeneralPost, PartyPost, PostComment } from '../types';
+import type {
+  CommunityBoard,
+  CommunityPost,
+  GeneralPost,
+  PartyPost,
+  PartyRequest,
+  PartyStatus,
+  PostComment,
+} from '../types';
 
 /** 목록 카드에 보여 줄 본문 요약 길이 */
 const DESCRIPTION_MAX_LENGTH = 60;
@@ -77,6 +92,21 @@ export function toPartyPost(dto: PostDto, comments: CommentDto[] = []): PartyPos
     totalPrice: dto.totalPrice,
     pricePerMember: dto.pricePerMember ?? 0,
     settlementDay: dto.settlementDay,
+    myPartyStatus: dto.myPartyStatus ? toPartyStatus(dto.myPartyStatus) : null,
+    pendingRequestCount: dto.pendingRequestCount,
+  };
+}
+
+export function toPartyStatus(status: PartyStatusDto): PartyStatus {
+  return status === 'ACCEPTED' ? 'accepted' : status === 'REJECTED' ? 'rejected' : 'requested';
+}
+
+export function toPartyRequest(dto: PartyRequestDto): PartyRequest {
+  return {
+    id: String(dto.requestId),
+    memberName: dto.memberName,
+    status: toPartyStatus(dto.status),
+    createdAt: toIsoKst(dto.createdAt),
   };
 }
 

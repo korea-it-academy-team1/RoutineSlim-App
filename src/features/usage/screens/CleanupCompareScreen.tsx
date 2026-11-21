@@ -8,40 +8,65 @@ import { BackHeader } from '@/components/common/BackHeader';
 import { Button } from '@/components/ui/Button';
 import type { Subscription } from '@/features/subscription/types';
 import { colors, radius, spacing, typography } from '@/theme';
-import { todayKey, type DateKey } from '@/utils/date';
 import { formatWon } from '@/utils/format';
 
+import { toCleanupActionDto, type CleanupSaveItemDto } from '../api/cleanupApi';
+import type { UsageCheckDto } from '../api/usageApi';
 import { CategoryChangeCard } from '../components/CategoryChangeCard';
 import { DiffList } from '../components/DiffList';
-import { NO_CLEANUP_OPTIONS, NO_USAGE } from '../types';
+import { NO_CLEANUP_OPTIONS } from '../types';
 import type { CleanupAction } from '../utils/cleanupPlan';
 import { compareCleanup } from '../utils/compareCleanup';
 
 type CleanupCompareScreenProps = {
   /** 이용 중인 구독 (서버) */
   subscriptions: Subscription[];
+  /** 사용량 체크 (서버). 변경 내역의 '안 씀'·'자주 씀' 표시에 쓴다 */
+  checks: UsageCheckDto[];
   selection: Record<string, CleanupAction>;
-  today?: DateKey;
   onBack: () => void;
-  /** 정리 목록에 담기 */
-  onSave?: () => void;
+  /** 정리 목록에 담기. 선택한 구독마다 정리 방법·정리 후 월 금액을 넘긴다 */
+  onSave?: (items: CleanupSaveItemDto[]) => void;
+  /** 저장 중이면 버튼을 막는다 */
+  submitting?: boolean;
+  /** 저장 실패 안내 (서버 detail) */
+  saveError?: string;
+  /** 담기를 마쳤으면 담은 개수. 하단에 완료 안내와 '홈으로'를 보여 준다 */
+  savedCount?: number | null;
+  /** 완료 후 정리 목록 보기 */
+  onDone?: () => void;
   /** 다시 고르기 */
   onReselect?: () => void;
 };
 
 export function CleanupCompareScreen({
   subscriptions,
+  checks,
   selection,
-  today = todayKey(),
   onBack,
   onSave,
+  submitting = false,
+  saveError,
+  savedCount = null,
+  onDone,
   onReselect,
 }: CleanupCompareScreenProps) {
   const { before, after, saving, rows, categories, notes } = useMemo(
-    () => compareCleanup(subscriptions, NO_USAGE, NO_CLEANUP_OPTIONS, selection, today),
-    [subscriptions, selection, today],
+    () => compareCleanup(subscriptions, checks, NO_CLEANUP_OPTIONS, selection),
+    [subscriptions, checks, selection],
   );
   const keptRatio = before > 0 ? after / before : 1;
+
+  // 선택한 구독만 보낸다. '그대로 두기'(KEEP)는 서버가 목록에서 뺀다
+  const saveItems: CleanupSaveItemDto[] = rows
+    .filter((row) => selection[row.subscription.id])
+    .map((row) => {
+      const action = toCleanupActionDto(selection[row.subscription.id]);
+      return action === 'DOWNGRADE' || action === 'PARTY'
+        ? { subscriptionId: row.subscription.id, action, newMonthlyAmount: row.newPrice }
+        : { subscriptionId: row.subscription.id, action };
+    });
+  const cleanupCount = saveItems.filter((item) => item.action !== 'KEEP').length;
 
   return (
     <SafeAreaView edges={['top', 'bottom']} style={styles.safeArea}>
@@ -137,8 +162,34 @@ export function CleanupCompareScreen({
       </ScrollView>
 
       <View style={styles.bottomAction}>
-        <Button size="md" title="정리 목록에 담기" onPress={onSave} />
-        <Button size="md" variant="secondary" title="다시 고르기" onPress={onReselect} style={styles.secondaryButton} />
+        {savedCount !== null ? (
+          <>
+            <Text style={styles.savedText}>
+              {savedCount > 0
+                ? `정리 목록에 ${savedCount}개를 담았어요. 결제일 3일 전에 알려 드릴게요.`
+                : '정리할 구독을 모두 그대로 두기로 했어요.'}
+            </Text>
+            <Button size="md" title="정리 목록 보기" onPress={onDone} />
+          </>
+        ) : (
+          <>
+            {saveError ? <Text style={styles.errorText}>{saveError}</Text> : null}
+            <Button
+              size="md"
+              title={submitting ? '담는 중…' : cleanupCount > 0 ? `정리 목록에 담기 (${cleanupCount})` : '정리 목록에 담기'}
+              disabled={submitting || saveItems.length === 0}
+              onPress={() => onSave?.(saveItems)}
+            />
+            <Button
+              size="md"
+              variant="secondary"
+              title="다시 고르기"
+              disabled={submitting}
+              onPress={onReselect}
+              style={styles.secondaryButton}
+            />
+          </>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -298,6 +349,16 @@ const styles = StyleSheet.create({
     ...typography.noticeText,
     paddingHorizontal: spacing.xs,
     color: colors.textSubtle,
+  },
+  savedText: {
+    ...typography.noticeText,
+    color: colors.textPrimary,
+    textAlign: 'center',
+  },
+  errorText: {
+    ...typography.noticeText,
+    color: colors.danger,
+    textAlign: 'center',
   },
   bottomAction: {
     gap: spacing.sm,

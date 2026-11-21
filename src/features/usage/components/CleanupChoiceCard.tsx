@@ -10,7 +10,7 @@ import type { CleanupAction, CleanupChoice } from '../utils/cleanupPlan';
 
 type CleanupChoiceCardProps = {
   subscription: Subscription;
-  /** 예: '30일 중 2일 접속' */
+  /** 예: '안 씀 · 11.3 체크' */
   usageLabel: string;
   choices: CleanupChoice[];
   selected: CleanupAction;
@@ -42,7 +42,7 @@ export function CleanupChoiceCard({
           </Text>
           <Text style={styles.usage}>{usageLabel}</Text>
         </View>
-        <Text style={styles.price}>{formatWon(subscription.price)}</Text>
+        <Text style={styles.price}>{formatWon(subscription.monthlyPrice)}</Text>
       </View>
 
       <View accessibilityRole="radiogroup" style={styles.grid}>

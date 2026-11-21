@@ -1,5 +1,5 @@
 import type { Subscription } from '@/features/subscription/types';
-import { diffInDays, type DateKey } from '@/utils/date';
+import { diffInDays, parseDateKey, type DateKey } from '@/utils/date';
 
 import type { UsageCheckDto, UsageLevelDto } from '../api/usageApi';
 
@@ -15,6 +15,22 @@ export const USAGE_LEVELS: { value: UsageLevelDto; label: string }[] = [
 
 /** '거의 안 씀'·'안 씀' 은 정리 후보 */
 export const isCandidateLevel = (level: UsageLevelDto) => level === 'RARELY' || level === 'NEVER';
+
+/** 덜 쓰는 순서 (정렬용) */
+export const LEVEL_RANK: Record<UsageLevelDto, number> = { NEVER: 0, RARELY: 1, SOMETIMES: 2, OFTEN: 3 };
+
+export const usageLevelLabel = (level: UsageLevelDto) => USAGE_LEVELS.find((l) => l.value === level)?.label ?? '';
+
+/** 'YYYY-MM-DD' → '9.11' */
+export function formatShortDate(date: DateKey) {
+  const { month, day } = parseDateKey(date);
+  return `${month}.${day}`;
+}
+
+/** 정리 화면에 보여 줄 사용 정도. 예: '안 씀 · 11.3 체크', 체크 전이면 '체크 안 함' */
+export function describeCheck(check: UsageCheckDto | null | undefined) {
+  return check ? `${usageLevelLabel(check.usageLevel)} · ${formatShortDate(check.checkedOn)} 체크` : '체크 안 함';
+}
 
 export type UsageRow = {
   subscription: Subscription;

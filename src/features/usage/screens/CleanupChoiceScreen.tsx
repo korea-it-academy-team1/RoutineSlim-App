@@ -4,59 +4,71 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import ArrowRightIcon from '@/assets/icons/arrow-right.svg';
 import { BackHeader } from '@/components/common/BackHeader';
+import { EmptyState } from '@/components/common/EmptyState';
 import { Button } from '@/components/ui/Button';
 import type { Subscription } from '@/features/subscription/types';
 import { colors, spacing, typography } from '@/theme';
-import { todayKey, type DateKey } from '@/utils/date';
 import { formatWon } from '@/utils/format';
 
+import type { UsageCheckDto } from '../api/usageApi';
 import { CleanupChoiceCard } from '../components/CleanupChoiceCard';
-import { NO_CLEANUP_OPTIONS, NO_USAGE } from '../types';
-import { analyzeUsage } from '../utils/analyzeUsage';
+import { NO_CLEANUP_OPTIONS } from '../types';
 import { getCleanupChoices, getDefaultAction, type CleanupAction } from '../utils/cleanupPlan';
+import { describeCheck } from '../utils/usageLevels';
 
 export type CleanupSelection = Record<string, CleanupAction>;
 
 type CleanupChoiceScreenProps = {
-  /** 이용 중인 구독 (서버) */
+  /** 이용 중인 구독 (서버). route 가 다 불러온 뒤에 그린다 */
   subscriptions: Subscription[];
-  /** 정리 후보 구독 id (접속 적은 순) */
+  /** 사용량 체크 (서버) */
+  checks: UsageCheckDto[];
+  /** 정리 후보 구독 id (사용량 점검에서 '거의 안 씀'·'안 씀') */
   subscriptionIds: string[];
-  today?: DateKey;
   onBack: () => void;
   onCompare?: (selection: CleanupSelection) => void;
 };
 
+/**
+ * 정리 방법 선택 (2/3). 후보마다 해지·저렴한 요금제·파티원 모집·그대로 두기 중에서 고른다.
+ * 요금제·파티 정보 API 가 아직 없어 지금은 '해지하기'·'그대로 두기'만 나온다 (types.ts NO_CLEANUP_OPTIONS).
+ * selection 첫 값을 후보로 정하므로 route 는 구독·체크를 다 불러온 뒤에 이 화면을 그려야 한다.
+ */
 export function CleanupChoiceScreen({
   subscriptions,
+  checks,
   subscriptionIds,
-  today = todayKey(),
   onBack,
   onCompare,
 }: CleanupChoiceScreenProps) {
-  const idsKey = subscriptionIds.join(',');
   const candidates = useMemo(() => {
-    const { candidates: usages } = analyzeUsage(subscriptions, NO_USAGE, today, Number.POSITIVE_INFINITY);
+    const checkOf = new Map(checks.map((c) => [c.subscriptionId, c]));
     return (
-      usages
-        .filter((u) => idsKey.split(',').includes(u.subscription.id))
+      subscriptions
+        // 해지·일시정지 등으로 이용 중이 아니게 된 구독은 빠진다
+        .filter((s) => subscriptionIds.includes(s.id))
         // 절약 폭이 큰(금액이 큰) 구독부터
-        .sort((a, b) => b.subscription.price - a.subscription.price)
-        .map((usage) => {
-          const info = NO_CLEANUP_OPTIONS[usage.subscription.id];
-          return { usage, info, choices: getCleanupChoices(usage.subscription, info) };
+        .sort((a, b) => b.monthlyPrice - a.monthlyPrice)
+        .map((subscription) => {
+          const info = NO_CLEANUP_OPTIONS[subscription.id];
+          return {
+            subscription,
+            info,
+            usageLabel: describeCheck(checkOf.get(subscription.id)),
+            choices: getCleanupChoices(subscription, info),
+          };
         })
     );
-  }, [subscriptions, idsKey, today]);
+  }, [subscriptions, checks, subscriptionIds]);
 
   const [selection, setSelection] = useState<CleanupSelection>(() =>
-    Object.fromEntries(candidates.map(({ usage, info }) => [usage.subscription.id, getDefaultAction(info)])),
+    Object.fromEntries(candidates.map(({ subscription, info }) => [subscription.id, getDefaultAction(info)])),
   );
 
-  const totalBefore = subscriptions.reduce((sum, s) => sum + s.price, 0);
-  const saving = candidates.reduce((sum, { usage, choices }) => {
-    const choice = choices.find((c) => c.action === selection[usage.subscription.id]);
-    return sum + (choice ? usage.subscription.price - choice.newPrice : 0);
+  const totalBefore = subscriptions.reduce((sum, s) => sum + s.monthlyPrice, 0);
+  const saving = candidates.reduce((sum, { subscription, choices }) => {
+    const choice = choices.find((c) => c.action === selection[subscription.id]);
+    return sum + (choice ? subscription.monthlyPrice - choice.newPrice : 0);
   }, 0);
 
   return (
@@ -69,18 +81,21 @@ export function CleanupChoiceScreen({
           <Text style={styles.subtitle}>서비스마다 해지, 저렴한 요금제, 파티원 모집 중에서 고를 수 있어요.</Text>
         </View>
 
-        {candidates.map(({ usage, info, choices }) => (
+        {candidates.length === 0 ? (
+          <EmptyState
+            title="정리할 구독이 없어요"
+            description="사용량 점검에서 '거의 안 씀'·'안 씀'으로 체크한 구독이 여기에 나와요."
+          />
+        ) : null}
+
+        {candidates.map(({ subscription, info, usageLabel, choices }) => (
           <CleanupChoiceCard
-            key={usage.subscription.id}
-            subscription={usage.subscription}
-            usageLabel={
-              usage.accessDays === 0
-                ? `${usage.days.length}일 동안 접속 없음`
-                : `${usage.days.length}일 중 ${usage.accessDays}일 접속`
-            }
+            key={subscription.id}
+            subscription={subscription}
+            usageLabel={usageLabel}
             choices={choices}
-            selected={selection[usage.subscription.id]}
-            onSelect={(action) => setSelection((prev) => ({ ...prev, [usage.subscription.id]: action }))}
+            selected={selection[subscription.id]}
+            onSelect={(action) => setSelection((prev) => ({ ...prev, [subscription.id]: action }))}
             cancelNote={info?.cancelNote}
           />
         ))}
@@ -105,6 +120,7 @@ export function CleanupChoiceScreen({
           size="md"
           title="전후 비교 보기"
           trailingIcon={<ArrowRightIcon width={18} height={18} />}
+          disabled={candidates.length === 0}
           onPress={() => onCompare?.(selection)}
           style={styles.button}
         />

@@ -3,25 +3,35 @@ import { useEffect, useRef, useState } from 'react';
 import { ApiError } from '@/api/client';
 
 import {
+  cancelParty,
   createComment,
+  decidePartyRequest,
   deleteComment,
   deletePost,
   getComments,
+  getPartyRequests,
   getPost,
   increaseViewCount,
+  requestParty,
   updatePost,
   type PostDto,
 } from '../api/communityApi';
-import type { CommunityPost } from '../types';
-import { toCloseRecruitRequest, toCommunityPost, toPostComment } from '../utils/postMapper';
+import type { CommunityPost, PartyRequest } from '../types';
+import { toCloseRecruitRequest, toCommunityPost, toPartyRequest, toPostComment } from '../utils/postMapper';
 
 type Loaded = {
   postId: string;
   post: CommunityPost | null;
   /** 모집 마감(PUT) 때 원래 값을 그대로 보내야 해서 서버 응답도 같이 둔다 */
   dto: PostDto | null;
+  /** 내가 쓴 파티 글의 참여 요청 (그 밖의 글은 빈 배열) */
+  partyRequests: PartyRequest[];
   error: ApiError | null;
 };
+
+/** 내가 쓴 파티 글이면 참여 요청을 불러온다 */
+const loadPartyRequests = async (dto: PostDto) =>
+  dto.board === 'PARTY' && dto.mine ? (await getPartyRequests(String(dto.postId))).map(toPartyRequest) : [];
 
 /**
  * 게시글 상세 (게시글 + 댓글 + 상세 화면의 동작).
@@ -45,13 +55,14 @@ export function usePost(postId: string) {
         await increaseViewCount(postId).catch(() => {});
       }
       const [dto, comments] = await Promise.all([getPost(postId), getComments(postId)]);
-      if (!cancelled) setLoaded({ postId, post: toCommunityPost(dto, comments), dto, error: null });
+      const partyRequests = await loadPartyRequests(dto);
+      if (!cancelled) setLoaded({ postId, post: toCommunityPost(dto, comments), dto, partyRequests, error: null });
     };
 
     load().catch((e: unknown) => {
       if (cancelled) return;
       const error = e instanceof ApiError ? e : new ApiError('UNKNOWN', '게시글을 불러오지 못했어요.', 0);
-      setLoaded({ postId, post: null, dto: null, error });
+      setLoaded({ postId, post: null, dto: null, partyRequests: [], error });
     });
 
     return () => {
@@ -82,16 +93,41 @@ export function usePost(postId: string) {
     await refreshComments();
   };
 
+  /** 서버가 돌려준 게시글로 바꾼다 (댓글은 그대로) */
+  const replacePost = (dto: PostDto, partyRequests?: PartyRequest[]) => {
+    setLoaded((prev) =>
+      prev?.postId === postId && prev.post
+        ? {
+            ...prev,
+            dto,
+            post: { ...toCommunityPost(dto), comments: prev.post.comments },
+            partyRequests: partyRequests ?? prev.partyRequests,
+          }
+        : prev,
+    );
+  };
+
   /** 파티원 모집 글만 */
   const closeRecruit = async () => {
     if (current?.dto?.board !== 'PARTY') return;
-    const dto = await updatePost(postId, toCloseRecruitRequest(current.dto));
-    // 댓글은 그대로 둔다
-    setLoaded((prev) =>
-      prev?.postId === postId && prev.post
-        ? { ...prev, dto, post: { ...toCommunityPost(dto), comments: prev.post.comments } }
-        : prev,
-    );
+    replacePost(await updatePost(postId, toCloseRecruitRequest(current.dto)));
+  };
+
+  /** 다른 사람 파티 글: 참여 요청 */
+  const requestJoin = async () => {
+    replacePost(await requestParty(postId));
+  };
+
+  /** 다른 사람 파티 글: 요청 취소 / 파티 나가기 */
+  const cancelJoin = async () => {
+    replacePost(await cancelParty(postId));
+  };
+
+  /** 내 파티 글: 참여 요청 수락·거절. 인원·모집 상태가 바뀌므로 글과 요청 목록을 다시 불러온다 */
+  const decideRequest = async (requestId: string, status: 'ACCEPTED' | 'REJECTED') => {
+    await decidePartyRequest(postId, requestId, status);
+    const dto = await getPost(postId);
+    replacePost(dto, await loadPartyRequests(dto));
   };
 
   const removePost = async () => {
@@ -100,11 +136,15 @@ export function usePost(postId: string) {
 
   return {
     post: current?.post ?? null,
+    partyRequests: current?.partyRequests ?? [],
     error: current?.error ?? null,
     reload: () => setAttempt((n) => n + 1),
     addComment,
     removeComment,
     closeRecruit,
+    requestJoin,
+    cancelJoin,
+    decideRequest,
     removePost,
   };
 }

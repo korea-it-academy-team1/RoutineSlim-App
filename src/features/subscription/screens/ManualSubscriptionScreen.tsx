@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import CalendarDaysIcon from '@/assets/icons/calendar-days-muted.svg';
@@ -12,6 +12,7 @@ import { colors, spacing, typography } from '@/theme';
 import { parseDateKey, type DateKey } from '@/utils/date';
 
 import { CATEGORY_META, CATEGORY_ORDER } from '../categories';
+import { DatePickerSheet } from '../components/DatePickerSheet';
 import type { SubscriptionCategory } from '../types';
 import {
   CYCLE_OPTIONS,
@@ -27,14 +28,10 @@ export type SubscriptionDraft = {
   price: number;
   cycle: BillingCycle;
   startDate: DateKey;
-  /** 결제수단 API 가 아직 없어 지금은 항상 비어 있다 */
-  paymentMethodId?: string;
   memo?: string;
 };
 
 const CATEGORY_OPTIONS = CATEGORY_ORDER.map((c) => ({ value: c, label: CATEGORY_META[c].label }));
-/** 등록된 결제수단. 결제수단 API 가 생기면 props 로 받는다 */
-const PAYMENT_OPTIONS: { value: string; label: string }[] = [];
 
 const MEMO_MAX_LENGTH = 100;
 
@@ -66,9 +63,8 @@ export function ManualSubscriptionScreen({
   const [priceInput, setPriceInput] = useState('');
   const [cycle, setCycle] = useState<BillingCycle>('monthly');
   const [dateInput, setDateInput] = useState('');
-  const [paymentMethodId, setPaymentMethodId] = useState<string | null>(null);
   const [memo, setMemo] = useState('');
-  const [openSheet, setOpenSheet] = useState<'category' | 'cycle' | 'payment' | null>(null);
+  const [openSheet, setOpenSheet] = useState<'category' | 'cycle' | 'date' | null>(null);
 
   const price = Number(priceInput) || 0;
   const startDate = parseDateInput(dateInput);
@@ -82,7 +78,6 @@ export function ManualSubscriptionScreen({
       price,
       cycle,
       startDate,
-      paymentMethodId: paymentMethodId ?? undefined,
       memo: memo.trim() || undefined,
     });
   };
@@ -138,16 +133,17 @@ export function ManualSubscriptionScreen({
               placeholder="YYYY. MM. DD"
               keyboardType="number-pad"
               maxLength={12}
-              trailing={<CalendarDaysIcon width={17} height={17} />}
+              trailing={
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="달력에서 시작일 고르기"
+                  hitSlop={10}
+                  onPress={() => setOpenSheet('date')}
+                >
+                  <CalendarDaysIcon width={17} height={17} />
+                </Pressable>
+              }
               accessibilityLabel="시작일"
-            />
-          </FormField>
-
-          <FormField label="결제 수단 (선택)">
-            <FormSelect
-              value={PAYMENT_OPTIONS.find((m) => m.value === paymentMethodId)?.label}
-              placeholder={PAYMENT_OPTIONS.length > 0 ? '결제 수단 선택' : '등록된 결제 수단이 없어요'}
-              onPress={() => PAYMENT_OPTIONS.length > 0 && setOpenSheet('payment')}
             />
           </FormField>
 
@@ -192,14 +188,14 @@ export function ManualSubscriptionScreen({
         onSelect={setCycle}
         onClose={() => setOpenSheet(null)}
       />
-      <OptionSheet
-        visible={openSheet === 'payment'}
-        title="결제 수단"
-        options={PAYMENT_OPTIONS}
-        selected={paymentMethodId}
-        onSelect={setPaymentMethodId}
-        onClose={() => setOpenSheet(null)}
-      />
+      {openSheet === 'date' ? (
+        <DatePickerSheet
+          title="시작일"
+          value={startDate}
+          onSelect={(date) => setDateInput(formatDateInput(date))}
+          onClose={() => setOpenSheet(null)}
+        />
+      ) : null}
     </SafeAreaView>
   );
 }
