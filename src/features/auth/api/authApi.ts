@@ -42,12 +42,21 @@ export function login(credentials: LoginCredentials) {
 export type ServerSocialProvider = 'GOOGLE' | 'KAKAO' | 'NAVER';
 
 /**
+ * [소셜 로그인 - 권기쁨] 서버에 보낼 소셜 로그인 정보
+ * - 구글: { token }  앱이 받은 access token
+ * - 카카오·네이버: { code, redirectUri, state }  인가 코드. Client Secret 이 필요한 토큰 교환은 서버가 한다
+ */
+export type SocialCredential =
+  | { token: string }
+  | { code: string; redirectUri: string; state?: string };
+
+/**
  * [소셜 로그인 - 권기쁨] 소셜 로그인 → 회원 UUID 문자열 (1번 방식)
- * - token: 각 회사에서 받은 access token. 서버가 그 회사 사용자 정보 API 로 검증한다
+ * - 서버가 그 회사 사용자 정보 API 로 검증한다
  * - 처음 로그인하는 사람이면 서버가 회원을 새로 만든다 (SocialLoginServiceImpl)
  */
-export function socialLogin(provider: ServerSocialProvider, token: string) {
-  return request<string>('/auth/social/login', { method: 'POST', body: { provider, token } });
+export function socialLogin(provider: ServerSocialProvider, credential: SocialCredential) {
+  return request<string>('/auth/social/login', { method: 'POST', body: { provider, ...credential } });
 }
 
 //// [JWT 로그인 - 이대수] 서버 TokenResponseDTO (로그인·재발급 응답)

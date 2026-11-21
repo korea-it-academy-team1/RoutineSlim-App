@@ -20,7 +20,7 @@
 import { create } from 'zustand';
 
 import * as authApi from './api/authApi';
-import type { LoginCredentials, ServerSocialProvider } from './api/authApi';
+import type { LoginCredentials, ServerSocialProvider, SocialCredential } from './api/authApi';
 // [1번 임시 - 이대수]
 import { clearMemberId, loadMemberId, saveMemberId } from './tokenStorage';
 
@@ -48,7 +48,7 @@ type AuthState = {
    * [소셜 로그인 - 권기쁨] 소셜 로그인. 실패하면 ApiError 를 그대로 throw
    * 소셜 로그인은 "로그인 상태 유지" 선택이 없으므로 유지로 저장한다 (서버 JWT 주석과 같은 기준)
    */
-  signInWithSocial: (provider: ServerSocialProvider, token: string) => Promise<void>;
+  signInWithSocial: (provider: ServerSocialProvider, credential: SocialCredential) => Promise<void>;
   /** 로그아웃. 1번 방식은 서버에 알릴 것이 없어 앱에서만 지운다 */
   signOut: () => Promise<void>;
   /** 앱 시작 시 한 번: 저장된 memberId 가 있으면 로그인 상태로 */
@@ -71,8 +71,8 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     else await clearMemberId();
   },
 
-  signInWithSocial: async (provider, token) => {
-    const memberId = await authApi.socialLogin(provider, token);
+  signInWithSocial: async (provider, credential) => {
+    const memberId = await authApi.socialLogin(provider, credential);
     set({ status: 'signedIn', memberId, keepLoggedIn: true });
     await saveMemberId(memberId);
   },
