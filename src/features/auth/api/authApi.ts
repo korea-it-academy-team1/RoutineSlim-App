@@ -38,6 +38,29 @@ export function login(credentials: LoginCredentials) {
   return request<string>('/auth/login', { method: 'POST', body: toLoginBody(credentials) });
 }
 
+/**
+ * 서버 SignupRequestDTO. 서버는 아이디 중복만 검사하므로 나머지 확인은 앱(SignupScreen)이 한다.
+ * - memberName 50자, name 50자, email 255자, phone 30자 이하 (DB 컬럼 크기)
+ * - email 은 DB 에서 UNIQUE 라 빈 문자열 대신 null 로 보낸다 (빈 문자열 두 개는 중복이 된다)
+ */
+export type SignupRequest = {
+  memberName: string;
+  memberPassword: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+};
+
+/**
+ * 회원가입 → 새 회원 UUID 문자열 (1번 방식)
+ *   POST /auth/signup
+ *   - 아이디가 이미 있으면 400 '이미 사용 중인 아이디입니다.'
+ *   - 이메일이 이미 있으면 서버가 검사하지 않아 DB 오류로 500 이 난다 (서버 보완 필요)
+ */
+export function signup(body: SignupRequest) {
+  return request<string>('/auth/signup', { method: 'POST', body });
+}
+
 /** [소셜 로그인 - 권기쁨] 서버 SocialProvider enum 값 (대문자) */
 export type ServerSocialProvider = 'GOOGLE' | 'KAKAO' | 'NAVER';
 

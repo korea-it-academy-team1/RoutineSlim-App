@@ -123,6 +123,7 @@ export default function LoginRoute() {
     <LoginScreen
       onLogin={handleLogin}
       onSocialLogin={handleSocialLogin}
+      onSignUp={() => router.push('/signup')}
       errorMessage={errorMessage}
       submitting={submitting}
     />
