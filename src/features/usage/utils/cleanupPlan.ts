@@ -17,9 +17,9 @@ const won = (n: number) => `${n.toLocaleString('ko-KR')}원`;
 /** 파티원 모집 시 1인당 금액 */
 export const pricePerPartyMember = (price: number, members: number) => Math.round(price / members);
 
-/** 서비스에서 고를 수 있는 정리 방법 목록 */
+/** 서비스에서 고를 수 있는 정리 방법 목록. 금액은 모두 월 환산 금액 */
 export function getCleanupChoices(subscription: Subscription, info: CleanupOptionInfo = {}): CleanupChoice[] {
-  const { price } = subscription;
+  const price = subscription.monthlyPrice;
   const choices: CleanupChoice[] = [
     { action: 'cancel', label: '해지하기', description: `월 ${won(price)} 절약`, newPrice: 0 },
   ];

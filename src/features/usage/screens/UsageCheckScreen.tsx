@@ -13,8 +13,14 @@ import { formatWon } from '@/utils/format';
 
 import type { UsageCheckDto, UsageLevelDto } from '../api/usageApi';
 import { UsageServiceHeader } from '../components/UsageServiceHeader';
-import { formatShortDate } from '../utils/analyzeUsage';
-import { analyzeChecks, isCandidateLevel, RECHECK_DAYS, USAGE_LEVELS, type UsageRow } from '../utils/usageLevels';
+import {
+  analyzeChecks,
+  formatShortDate,
+  isCandidateLevel,
+  RECHECK_DAYS,
+  USAGE_LEVELS,
+  type UsageRow,
+} from '../utils/usageLevels';
 
 type UsageCheckScreenProps = {
   /** 이용 중인 구독 (서버) */
