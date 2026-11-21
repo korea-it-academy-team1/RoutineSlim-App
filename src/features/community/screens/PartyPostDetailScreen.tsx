@@ -11,9 +11,10 @@ import { ServiceLogoView } from '@/features/subscription/components/ServiceLogoV
 import { colors, spacing, typography } from '@/theme';
 import { formatWon } from '@/utils/format';
 
+import { PartyRequestList } from '../components/PartyRequestList';
 import { PostAuthorRow } from '../components/PostAuthorRow';
 import { PostComments } from '../components/PostComments';
-import type { PartyPost } from '../types';
+import type { PartyPost, PartyRequest } from '../types';
 
 type PartyPostDetailScreenProps = {
   post: PartyPost;
@@ -28,6 +29,12 @@ type PartyPostDetailScreenProps = {
   onPressComments?: () => void;
   /** 다른 사람 글: 참여 요청 */
   onRequestJoin?: () => void;
+  /** 다른 사람 글: 요청 취소 / 파티 나가기 */
+  onCancelJoin?: () => void;
+  /** 내 글: 참여 요청 목록 */
+  partyRequests?: PartyRequest[];
+  /** 내 글: 참여 요청 수락·거절 */
+  onDecideRequest?: (requestId: string, status: 'ACCEPTED' | 'REJECTED') => void;
   /** 내 글이고 모집 중일 때: 모집 마감 */
   onCloseRecruit?: () => void;
   /** 댓글 등록. 성공하면 true 를 돌려줘야 입력칸을 비운다 */
@@ -45,6 +52,9 @@ export function PartyPostDetailScreen({
   onPressMore,
   onPressComments,
   onRequestJoin,
+  onCancelJoin,
+  partyRequests = [],
+  onDecideRequest,
   onCloseRecruit,
   onSubmitComment,
   onDeleteComment,
@@ -60,12 +70,32 @@ export function PartyPostDetailScreen({
         <Button size="md" title="모집이 마감됐어요" disabled />
       );
     }
+    // 이미 요청했거나 참여 중이면 마감 여부와 상관없이 취소·나가기를 할 수 있다
+    if (post.myPartyStatus === 'requested') {
+      return (
+        <>
+          <Text style={styles.joinStatus}>참여를 요청했어요. 작성자가 수락하면 파티원이 돼요.</Text>
+          <Button size="md" variant="secondary" title="요청 취소하기" disabled={busy} onPress={onCancelJoin} />
+        </>
+      );
+    }
+    if (post.myPartyStatus === 'accepted') {
+      return (
+        <>
+          <Text style={styles.joinStatus}>이 파티에 참여 중이에요.</Text>
+          <Button size="md" variant="secondary" title="파티 나가기" disabled={busy} onPress={onCancelJoin} />
+        </>
+      );
+    }
+    if (post.myPartyStatus === 'rejected') {
+      return <Button size="md" title="참여 요청이 거절됐어요" disabled />;
+    }
     return (
       <Button
         size="md"
         title={!recruiting || isFull ? '모집이 마감됐어요' : '참여 요청하기'}
         icon={recruiting && !isFull ? <UserPlusIcon width={20} height={20} /> : undefined}
-        disabled={!recruiting || isFull}
+        disabled={busy || !recruiting || isFull}
         onPress={onRequestJoin}
       />
     );
@@ -124,6 +154,16 @@ export function PartyPostDetailScreen({
             <Text style={styles.bodyTitle}>{post.body.title}</Text>
             <Text style={styles.bodyContent}>{post.body.content}</Text>
           </View>
+
+          {post.mine ? (
+            <PartyRequestList
+              requests={partyRequests}
+              now={now}
+              busy={busy}
+              onAccept={(requestId) => onDecideRequest?.(requestId, 'ACCEPTED')}
+              onReject={(requestId) => onDecideRequest?.(requestId, 'REJECTED')}
+            />
+          ) : null}
 
           <PostComments
             comments={post.comments}
@@ -224,6 +264,12 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
     textAlign: 'center',
     color: colors.danger,
+  },
+  joinStatus: {
+    ...typography.small,
+    marginBottom: spacing.sm,
+    textAlign: 'center',
+    color: colors.textSubtle,
   },
   footer: {
     paddingTop: spacing.sm,

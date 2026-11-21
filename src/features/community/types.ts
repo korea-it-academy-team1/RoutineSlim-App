@@ -45,6 +45,21 @@ export type PartyPost = PostBase & {
   pricePerMember: number;
   /** 매월 정산일. 작성자가 안 적었으면 null */
   settlementDay: number | null;
+  /** 내 참여 상태. 요청한 적 없거나 내 글이면 null */
+  myPartyStatus: PartyStatus | null;
+  /** 확인 안 한 참여 요청 수. 내 글만 값이 있다 */
+  pendingRequestCount: number | null;
+};
+
+export type PartyStatus = 'requested' | 'accepted' | 'rejected';
+
+/** 작성자가 보는 참여 요청 */
+export type PartyRequest = {
+  id: string;
+  memberName: string;
+  status: PartyStatus;
+  /** ISO 8601 */
+  createdAt: string;
 };
 
 /** 후기·자유 글 (파티 정보 없음). Figma 시안이 없어 파티 카드에서 모집 정보를 뺀 형태로 보여 준다 */

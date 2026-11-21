@@ -8,6 +8,7 @@ import { useMyInfo } from '@/features/my/hooks/useMyInfo';
 import { MyScreen, type MyMenu } from '@/features/my/screens/MyScreen';
 import { confirmDialog, showMessage } from '@/features/my/utils/dialog';
 import { formatNotification, slimDays } from '@/features/my/utils/myInfo';
+import { useCleanupItems } from '@/features/usage/hooks/useCleanupItems';
 import { useUsageChecks } from '@/features/usage/hooks/useUsageChecks';
 import { isCandidateLevel } from '@/features/usage/utils/usageLevels';
 import { formatWon } from '@/utils/format';
@@ -22,6 +23,7 @@ export default function MyRoute() {
     ? checks.filter((c) => isCandidateLevel(c.usageLevel) && subscriptions.some((s) => s.id === c.subscriptionId))
         .length
     : undefined;
+  const { items: cleanupItems } = useCleanupItems();
   const [withdrawing, setWithdrawing] = useState(false);
 
   const handleLogout = async () => {
@@ -55,6 +57,8 @@ export default function MyRoute() {
     else if (menu === 'budget') router.push('/my/budget');
     else if (menu === 'notifications') router.push('/my/notifications');
     else if (menu === 'usage') router.push('/usage');
+    else if (menu === 'cleanup') router.push('/my/cleanup');
+    else if (menu === 'communityActivity') router.push('/my/community-activity');
     else if (menu === 'withdraw') void handleWithdraw();
     // 나머지 메뉴는 아직 화면이 없다
   };
@@ -76,6 +80,7 @@ export default function MyRoute() {
       notificationLabel={info ? formatNotification(info.defaultNotificationDays, info.notificationTime) : undefined}
       budgetLabel={info ? (info.monthlyBudget ? formatWon(info.monthlyBudget) : '미설정') : undefined}
       usageCandidateCount={usageCandidateCount}
+      cleanupCount={cleanupItems?.length}
       onPressMenu={handlePressMenu}
       onLogout={handleLogout}
     />

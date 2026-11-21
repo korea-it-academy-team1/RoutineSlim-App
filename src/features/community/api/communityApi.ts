@@ -39,7 +39,27 @@ export type PostDto = {
   pricePerMember: number | null;
   /** 작성자가 안 보냈으면 PARTY 여도 null */
   settlementDay: number | null;
+  /** 내 참여 상태. 요청한 적 없거나 내 글이면 null (Flyway V9) */
+  myPartyStatus: PartyStatusDto | null;
+  /** 확인 안 한 참여 요청 수. 내가 쓴 파티 글만 값이 있다 (Flyway V9) */
+  pendingRequestCount: number | null;
 };
+
+/** 파티 참여 상태 (서버 PartyMemberStatus) */
+export type PartyStatusDto = 'REQUESTED' | 'ACCEPTED' | 'REJECTED';
+
+/** 서버 PartyRequestDTO — 작성자가 보는 참여 요청 1건 */
+export type PartyRequestDto = {
+  requestId: number;
+  postId: number;
+  memberName: string;
+  status: PartyStatusDto;
+  /** 'YYYY-MM-DDTHH:mm:ss' (시간대 없음, 한국 시간) */
+  createdAt: string;
+};
+
+/** 마이 > 커뮤니티 활동 목록 종류 */
+export type ActivityScopeDto = 'MINE' | 'COMMENTED' | 'JOINED';
 
 /** 서버 CommentDTO */
 export type CommentDto = {
@@ -112,6 +132,38 @@ export async function getComments(postId: string): Promise<CommentDto[]> {
 
 export async function createComment(postId: string, content: string): Promise<CommentDto> {
   return authorizedRequest<CommentDto>(`${BASE}/${postId}/comments`, { method: 'POST', body: { content } });
+}
+
+/** 내 활동 글 (최신순): MINE 내가 쓴 글 / COMMENTED 댓글 단 글 / JOINED 참여 요청·참여 중인 파티 */
+export async function getActivityPosts(scope: ActivityScopeDto, page = 0, size = 50): Promise<PostDto[]> {
+  return authorizedRequest<PostDto[]>(`${BASE}?scope=${scope}&page=${page}&size=${size}`);
+}
+
+/** 파티 참여 요청 → 바뀐 게시글 */
+export async function requestParty(postId: string): Promise<PostDto> {
+  return authorizedRequest<PostDto>(`${BASE}/${postId}/party`, { method: 'POST' });
+}
+
+/** 참여 요청 취소 / 파티 나가기 → 바뀐 게시글 */
+export async function cancelParty(postId: string): Promise<PostDto> {
+  return authorizedRequest<PostDto>(`${BASE}/${postId}/party`, { method: 'DELETE' });
+}
+
+/** 참여 요청 목록 (작성자만, 요청 순) */
+export async function getPartyRequests(postId: string): Promise<PartyRequestDto[]> {
+  return authorizedRequest<PartyRequestDto[]>(`${BASE}/${postId}/party/requests`);
+}
+
+/** 참여 요청 수락·거절 (작성자만). 수락하면 현재 인원 +1, 다 차면 서버가 모집 완료로 바꾼다 */
+export async function decidePartyRequest(
+  postId: string,
+  requestId: string,
+  status: 'ACCEPTED' | 'REJECTED',
+): Promise<PartyRequestDto> {
+  return authorizedRequest<PartyRequestDto>(`${BASE}/${postId}/party/requests/${requestId}`, {
+    method: 'PATCH',
+    body: { status },
+  });
 }
 
 /** 작성자만 (204) */

@@ -8,14 +8,10 @@ import BellIcon from '@/assets/icons/menu/bell.svg';
 import ChartIcon from '@/assets/icons/menu/chart.svg';
 import ChatIcon from '@/assets/icons/menu/chat.svg';
 import CircleIcon from '@/assets/icons/menu/circle.svg';
-import CloudIcon from '@/assets/icons/menu/cloud.svg';
-import DownloadIcon from '@/assets/icons/menu/download.svg';
 import InfoIcon from '@/assets/icons/menu/info.svg';
 import ListIcon from '@/assets/icons/menu/list.svg';
-import LockIcon from '@/assets/icons/menu/lock.svg';
 import { PageHeader } from '@/components/common/PageHeader';
 import { SettingsRow, SettingsSection } from '@/components/common/SettingsList';
-import { Toggle } from '@/components/ui/Toggle';
 import { colors, radius, spacing, typography } from '@/theme';
 
 import { ProfileCard } from '../components/ProfileCard';
@@ -26,11 +22,10 @@ export type MyMenu =
   | 'report'
   | 'subscriptions'
   | 'usage'
+  | 'cleanup'
   | 'budget'
   | 'notifications'
   | 'communityActivity'
-  | 'export'
-  | 'backup'
   | 'notices'
   | 'contact'
   | 'withdraw';
@@ -55,6 +50,8 @@ type MyScreenProps = {
   budgetLabel?: string;
   /** 사용량 점검의 정리 후보 수 ('거의 안 씀'·'안 씀'). 0 이거나 모르면 배지를 숨긴다 */
   usageCandidateCount?: number;
+  /** 정리 목록에 담은 구독 수 (불러오기 전 undefined) */
+  cleanupCount?: number;
   onPressMenu?: (menu: MyMenu) => void;
   onLogout?: () => void;
 };
@@ -69,11 +66,11 @@ export function MyScreen({
   notificationLabel,
   budgetLabel,
   usageCandidateCount,
+  cleanupCount,
   onPressMenu,
   onLogout,
 }: MyScreenProps) {
   const [scrolled, setScrolled] = useState(false);
-  const [appLock, setAppLock] = useState(false);
   const open = (menu: MyMenu) => () => onPressMenu?.(menu);
 
   return (
@@ -119,6 +116,13 @@ export function MyScreen({
               onPress={open('usage')}
             />
             <SettingsRow
+              icon={<SymbolInCircle symbol="✓" fontSize={10.5} />}
+              title="정리 목록"
+              subtitle="정리하기로 담은 구독"
+              value={cleanupCount === undefined ? '' : `${cleanupCount}개`}
+              onPress={open('cleanup')}
+            />
+            <SettingsRow
               icon={<SymbolInCircle symbol="₩" fontSize={10.5} />}
               title="월 예산"
               value={budgetLabel ?? ''}
@@ -136,29 +140,8 @@ export function MyScreen({
             <SettingsRow
               icon={<ChatIcon width={20.8} height={15.8} />}
               title="커뮤니티 활동"
-              subtitle="내가 쓴 글 · 참여 중인 파티"
+              subtitle="내가 쓴 글 · 댓글 · 참여 중인 파티"
               onPress={open('communityActivity')}
-            />
-          </SettingsSection>
-
-          <SettingsSection title="데이터 · 보안">
-            <SettingsRow
-              icon={<DownloadIcon width={17.8} height={16.8} />}
-              title="데이터 내보내기"
-              subtitle="CSV, 엑셀로 저장"
-              onPress={open('export')}
-            />
-            <SettingsRow
-              icon={<CloudIcon width={18.94} height={13.18} />}
-              title="백업 / 동기화"
-              subtitle="백업 기록 없음"
-              onPress={open('backup')}
-            />
-            <SettingsRow
-              icon={<LockIcon width={13.8} height={17.3} />}
-              title="앱 잠금"
-              subtitle="Face ID로 잠그기"
-              accessory={<Toggle value={appLock} onChange={setAppLock} accessibilityLabel="앱 잠금" />}
             />
           </SettingsSection>
 
