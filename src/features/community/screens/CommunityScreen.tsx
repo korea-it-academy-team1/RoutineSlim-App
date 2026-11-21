@@ -11,29 +11,30 @@ import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { colors, spacing, typography } from '@/theme';
 
 import { BOARD_OPTIONS } from '../boards';
+import { GeneralPostCard } from '../components/GeneralPostCard';
 import { PartyPostCard } from '../components/PartyPostCard';
-import type { CommunityBoard, PartyPost } from '../types';
+import type { CommunityBoard, CommunityPost } from '../types';
 
 type CommunityScreenProps = {
   /** 선택한 게시판. 게시판별로 서버에서 불러오도록 route 가 상태를 가진다 */
   board: CommunityBoard;
   onChangeBoard: (board: CommunityBoard) => void;
-  /** 파티원 모집 게시글 (서버). 불러오는 중이면 null */
-  partyPosts: PartyPost[] | null;
+  /** 선택한 게시판의 게시글 (서버). 불러오는 중이면 null */
+  posts: CommunityPost[] | null;
   /** 불러오기 실패 문구. 있으면 목록 대신 '다시 시도' 안내 */
   errorMessage?: string;
   onRetry?: () => void;
   onPressSearch?: () => void;
   onPressServiceFilter?: () => void;
   onPressSort?: () => void;
-  onPressPost?: (post: PartyPost) => void;
+  onPressPost?: (post: CommunityPost) => void;
   onPressWrite?: () => void;
 };
 
 export function CommunityScreen({
   board,
   onChangeBoard,
-  partyPosts,
+  posts,
   errorMessage,
   onRetry,
   onPressSearch,
@@ -42,13 +43,11 @@ export function CommunityScreen({
   onPressPost,
   onPressWrite,
 }: CommunityScreenProps) {
+  // 서비스 필터·정렬 줄은 파티원 모집 게시판에만 있다 (Figma)
   const isParty = board === 'party';
-  // 후기·자유 게시판은 아직 시안(카드 디자인)이 없어 빈 목록
-  const posts = isParty ? (partyPosts ?? []) : [];
   const now = new Date().toISOString();
 
   const renderEmpty = () => {
-    if (!isParty) return <EmptyState title="후기·자유 게시판은 준비 중이에요" />;
     if (errorMessage) {
       return (
         <EmptyState
@@ -59,7 +58,7 @@ export function CommunityScreen({
         />
       );
     }
-    if (partyPosts === null) return <ActivityIndicator style={styles.loading} color={colors.primary} />;
+    if (posts === null) return <ActivityIndicator style={styles.loading} color={colors.primary} />;
     return <Text style={styles.empty}>아직 게시글이 없어요</Text>;
   };
 
@@ -76,7 +75,7 @@ export function CommunityScreen({
 
       <View style={styles.body}>
         <FlatList
-          data={posts}
+          data={posts ?? []}
           keyExtractor={(post) => post.id}
           contentContainerStyle={styles.content}
           ItemSeparatorComponent={Separator}
@@ -102,7 +101,13 @@ export function CommunityScreen({
             </View>
           }
           ListEmptyComponent={renderEmpty()}
-          renderItem={({ item }) => <PartyPostCard post={item} now={now} onPress={() => onPressPost?.(item)} />}
+          renderItem={({ item }) =>
+            item.board === 'party' ? (
+              <PartyPostCard post={item} now={now} onPress={() => onPressPost?.(item)} />
+            ) : (
+              <GeneralPostCard post={item} now={now} onPress={() => onPressPost?.(item)} />
+            )
+          }
         />
 
         <FloatingActionButton

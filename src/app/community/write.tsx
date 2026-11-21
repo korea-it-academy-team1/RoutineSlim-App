@@ -1,17 +1,10 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
 
-import { useActiveSubscriptions } from '@/features/subscription/hooks/useSubscriptions';
+import { createPost } from '@/features/community/api/communityApi';
 import { WritePostScreen, type PostDraft } from '@/features/community/screens/WritePostScreen';
-
-// ---------------------------------------------------------------------------
-// TODO(커뮤니티): features/community/api/communityApi.ts 의 createPost 와
-//   utils/postMapper.ts 의 toCreatePostRequest 를 구현하면 이 함수를 지우고
-//   submit 안의 호출을 `await createPost(toCreatePostRequest(draft))` 로 바꾼다.
-// ---------------------------------------------------------------------------
-async function createPostPlaceholder(_draft: PostDraft): Promise<void> {
-  throw new Error('커뮤니티 API 연동 전이에요.');
-}
+import { toCreatePostRequest } from '@/features/community/utils/postMapper';
+import { useActiveSubscriptions } from '@/features/subscription/hooks/useSubscriptions';
 
 export default function WritePostRoute() {
   const { subscriptions } = useActiveSubscriptions();
@@ -23,7 +16,7 @@ export default function WritePostRoute() {
     setSubmitting(true);
     setSubmitError(undefined);
     try {
-      await createPostPlaceholder(draft);
+      await createPost(toCreatePostRequest(draft));
       // 목록은 탭에 다시 들어올 때(useFocusEffect) 새로 불러온다
       goBack();
     } catch (e) {

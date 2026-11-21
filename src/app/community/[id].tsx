@@ -2,45 +2,16 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
-import { ApiError } from '@/api/client';
+import { usePost } from '@/features/community/hooks/usePost';
+import { GeneralPostDetailScreen } from '@/features/community/screens/GeneralPostDetailScreen';
 import { PartyPostDetailScreen } from '@/features/community/screens/PartyPostDetailScreen';
-import type { PartyPost } from '@/features/community/types';
 import { confirmDialog, showMessage } from '@/features/my/utils/dialog';
 import { colors, typography } from '@/theme';
 
-// ---------------------------------------------------------------------------
-// TODO(커뮤니티): features/community/hooks/usePost.ts 를 구현하면
-//   1) 아래 postPlaceholder 함수를 지우고
-//   2) 컴포넌트 안의 placeholder 호출을 `usePost(id)` 로 바꾼다
-//      import { usePost } from '@/features/community/hooks/usePost';
-// 훅과 반환 모양이 같아서 나머지 코드는 그대로 쓰면 된다.
-// 지금은 서버 연동 전이라 항상 '게시글을 찾을 수 없어요' 가 보인다.
-// ---------------------------------------------------------------------------
-function postPlaceholder(_postId: string): {
-  post: PartyPost | null;
-  error: ApiError | null;
-  reload: () => void;
-  addComment: (content: string) => Promise<void>;
-  removeComment: (commentId: string) => Promise<void>;
-  closeRecruit: () => Promise<void>;
-  removePost: () => Promise<void>;
-} {
-  const notReady = () => Promise.reject(new Error('커뮤니티 API 연동 전이에요.'));
-  return {
-    post: null,
-    error: new ApiError('HTTP_400', '게시글을 찾을 수 없습니다.', 400),
-    reload: () => {},
-    addComment: notReady,
-    removeComment: notReady,
-    closeRecruit: notReady,
-    removePost: notReady,
-  };
-}
-
-/** 커뮤니티 > 파티원 모집 글 상세 (댓글, 모집 마감, 삭제) */
+/** 커뮤니티 글 상세. 파티원 모집은 모집 정보·마감까지, 후기·자유는 본문과 댓글 (공통: 댓글, 내 글 삭제) */
 export default function PartyPostDetailRoute() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { post, error, reload, addComment, removeComment, closeRecruit, removePost } = postPlaceholder(id);
+  const { post, error, reload, addComment, removeComment, closeRecruit, removePost } = usePost(id);
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string>();
 
@@ -94,6 +65,20 @@ export default function PartyPostDetailRoute() {
       <View style={styles.center}>
         <ActivityIndicator color={colors.primary} />
       </View>
+    );
+  }
+
+  if (post.board !== 'party') {
+    return (
+      <GeneralPostDetailScreen
+        post={post}
+        busy={busy}
+        actionError={actionError}
+        onBack={goBack}
+        onPressMore={() => void remove()}
+        onSubmitComment={(content) => run(() => addComment(content))}
+        onDeleteComment={(commentId) => void deleteComment(commentId)}
+      />
     );
   }
 
