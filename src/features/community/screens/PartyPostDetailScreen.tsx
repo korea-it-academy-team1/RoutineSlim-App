@@ -1,24 +1,19 @@
-import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import EllipsisIcon from '@/assets/icons/ellipsis.svg';
-import MessageCircleIcon from '@/assets/icons/message-circle-md.svg';
 import UserPlusIcon from '@/assets/icons/user-plus.svg';
-import UserRoundIcon from '@/assets/icons/user-round.svg';
 import { BackHeader } from '@/components/common/BackHeader';
 import { Card } from '@/components/common/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
-import { formStyles } from '@/components/ui/FormField';
 import { ServiceLogoView } from '@/features/subscription/components/ServiceLogoView';
-import { colors, radius, shadows, spacing, typography } from '@/theme';
-import { formatTimeAgo, formatWon } from '@/utils/format';
+import { colors, spacing, typography } from '@/theme';
+import { formatWon } from '@/utils/format';
 
+import { PostAuthorRow } from '../components/PostAuthorRow';
+import { PostComments } from '../components/PostComments';
 import type { PartyPost } from '../types';
-
-/** 서버 제한: 댓글 1~1000자 */
-const COMMENT_MAX_LENGTH = 1000;
 
 type PartyPostDetailScreenProps = {
   post: PartyPost;
@@ -54,15 +49,8 @@ export function PartyPostDetailScreen({
   onSubmitComment,
   onDeleteComment,
 }: PartyPostDetailScreenProps) {
-  const [comment, setComment] = useState('');
   const recruiting = post.status === 'recruiting';
   const isFull = post.currentMembers >= post.maxMembers;
-  const canSubmitComment = !!onSubmitComment && comment.trim().length > 0 && !busy;
-
-  const submitComment = async () => {
-    if (!canSubmitComment) return;
-    if (await onSubmitComment(comment.trim())) setComment('');
-  };
 
   const renderFooterButton = () => {
     if (post.mine) {
@@ -105,13 +93,7 @@ export function PartyPostDetailScreen({
               <Badge label={recruiting ? '모집 중' : '모집 완료'} tone={recruiting ? 'positive' : 'neutral'} />
             </View>
             <Text style={styles.title}>{post.title}</Text>
-            <View style={styles.author}>
-              <View style={styles.avatar}>
-                <UserRoundIcon width={18} height={18} />
-              </View>
-              <Text style={styles.authorName}>{post.authorName}</Text>
-              <Text style={styles.meta}>{`${formatTimeAgo(post.createdAt, now)} · 조회 ${post.viewCount}`}</Text>
-            </View>
+            <PostAuthorRow authorName={post.authorName} createdAt={post.createdAt} viewCount={post.viewCount} now={now} />
           </View>
 
           <Card style={styles.pricingCard}>
@@ -143,67 +125,16 @@ export function PartyPostDetailScreen({
             <Text style={styles.bodyContent}>{post.body.content}</Text>
           </View>
 
-          <View style={styles.comments}>
-            <Pressable
-              accessibilityRole="button"
-              disabled={!onPressComments}
-              onPress={onPressComments}
-              style={styles.commentsHeading}
-            >
-              <MessageCircleIcon width={16} height={16} />
-              <Text style={styles.commentsTitle}>{`댓글 ${post.commentCount}`}</Text>
-            </Pressable>
-
-            {post.comments.length > 0 ? (
-              post.comments.map((item) => (
-                <View key={item.id} style={styles.commentCard}>
-                  <View style={styles.commentHeading}>
-                    <Text style={styles.commentMeta}>
-                      {`${item.authorName} · ${formatTimeAgo(item.createdAt, now)}`}
-                    </Text>
-                    {item.mine && onDeleteComment ? (
-                      <Pressable
-                        accessibilityRole="button"
-                        accessibilityLabel="댓글 삭제"
-                        hitSlop={8}
-                        disabled={busy}
-                        onPress={() => onDeleteComment(item.id)}
-                      >
-                        <Text style={styles.commentDelete}>삭제</Text>
-                      </Pressable>
-                    ) : null}
-                  </View>
-                  <Text style={styles.commentContent}>{item.content}</Text>
-                </View>
-              ))
-            ) : (
-              <Text style={styles.noComment}>아직 댓글이 없어요. 궁금한 점을 남겨보세요!</Text>
-            )}
-
-            {onSubmitComment ? (
-              <View style={[formStyles.box, styles.commentInputBox]}>
-                <TextInput
-                  value={comment}
-                  onChangeText={setComment}
-                  placeholder="댓글을 입력해주세요"
-                  placeholderTextColor={colors.textPlaceholder}
-                  maxLength={COMMENT_MAX_LENGTH}
-                  multiline
-                  style={styles.commentInput}
-                  accessibilityLabel="댓글 입력"
-                />
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityState={{ disabled: !canSubmitComment }}
-                  disabled={!canSubmitComment}
-                  hitSlop={8}
-                  onPress={() => void submitComment()}
-                >
-                  <Text style={[styles.commentSubmit, !canSubmitComment && styles.commentSubmitDisabled]}>등록</Text>
-                </Pressable>
-              </View>
-            ) : null}
-          </View>
+          <PostComments
+            comments={post.comments}
+            commentCount={post.commentCount}
+            now={now}
+            busy={busy}
+            emptyText="아직 댓글이 없어요. 궁금한 점을 남겨보세요!"
+            onPressComments={onPressComments}
+            onSubmitComment={onSubmitComment}
+            onDeleteComment={onDeleteComment}
+          />
         </ScrollView>
 
         <View style={styles.footer}>
@@ -239,28 +170,6 @@ const styles = StyleSheet.create({
   title: {
     ...typography.postDetailTitle,
     color: colors.textTitle,
-  },
-  author: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 9,
-  },
-  avatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.primarySoft,
-  },
-  authorName: {
-    ...typography.captionSmBold,
-    flex: 1,
-    color: colors.textTitle,
-  },
-  meta: {
-    ...typography.micro,
-    color: colors.textSubtle,
   },
   pricingCard: {
     gap: spacing.md,
@@ -309,68 +218,6 @@ const styles = StyleSheet.create({
   bodyContent: {
     ...typography.bodyRegular,
     color: colors.textSubtle,
-  },
-  comments: {
-    gap: spacing.sm,
-  },
-  commentsHeading: {
-    alignSelf: 'flex-start',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  commentsTitle: {
-    ...typography.listTitle,
-    color: colors.textTitle,
-  },
-  commentCard: {
-    gap: spacing.xs,
-    padding: spacing.md,
-    borderRadius: radius.xl,
-    backgroundColor: colors.white,
-    ...shadows.card,
-  },
-  commentHeading: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.sm,
-  },
-  commentMeta: {
-    ...typography.metaBold,
-    flexShrink: 1,
-    color: colors.textTitle,
-  },
-  commentDelete: {
-    ...typography.meta,
-    color: colors.textSubtle,
-  },
-  commentContent: {
-    ...typography.captionSm,
-    color: colors.textSubtle,
-  },
-  noComment: {
-    ...typography.captionSm,
-    color: colors.textSubtle,
-  },
-  commentInputBox: {
-    alignItems: 'flex-end',
-    paddingVertical: 10,
-  },
-  commentInput: {
-    ...typography.formInput,
-    flex: 1,
-    minWidth: 0,
-    maxHeight: 96,
-    padding: 0,
-    color: colors.textTitle,
-  },
-  commentSubmit: {
-    ...typography.label14,
-    color: colors.primary,
-  },
-  commentSubmitDisabled: {
-    color: colors.textPlaceholder,
   },
   actionError: {
     ...typography.small,

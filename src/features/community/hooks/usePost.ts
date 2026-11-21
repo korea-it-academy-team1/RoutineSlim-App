@@ -1,43 +1,110 @@
-/**
- * 게시글 상세 훅 (게시글 + 댓글 + 상세 화면의 동작)
- * ============================================================================
- * 사용하는 곳: src/app/community/[id].tsx
- *   지금은 그 파일의 postPlaceholder(id) 가 항상 '찾을 수 없음' 오류를 돌려준다.
- *   이 훅을 구현하면 placeholder 함수를 지우고 `usePost(id)` 로 바꾼다 (반환 모양 동일).
- *   확인 대화상자, 요청 중 표시, 실패 문구, 삭제 후 뒤로 가기는 route 에 이미 있다.
- *   이 훅의 함수들은 실패하면 throw 만 하면 된다 (route 의 run() 이 잡아서 actionError 로 보여 준다).
- *
- * ----------------------------------------------------------------------------
- * 만들 것
- * ----------------------------------------------------------------------------
- *   export function usePost(postId: string): {
- *     post: PartyPost | null;                            // 불러오는 중이면 null
- *     error: ApiError | null;                            // 없는 글은 서버가 400 (route 가 '찾을 수 없어요' 로 표시)
- *     reload: () => void;                                // 다시 시도
- *     addComment: (content: string) => Promise<void>;    // 작성 후 댓글 다시 불러오기
- *     removeComment: (commentId: string) => Promise<void>;
- *     closeRecruit: () => Promise<void>;                 // 내 글 모집 마감
- *     removePost: () => Promise<void>;                   // 내 글 삭제 (댓글도 서버가 함께 삭제)
- *   }
- *
- * ----------------------------------------------------------------------------
- * 구현 순서
- * ----------------------------------------------------------------------------
- *   1. useEffect([postId, attempt]) 에서 getPost(postId) 와 getComments(postId) 를 Promise.all 로 같이 요청
- *   2. toPartyPost(postDto, commentDtos) 로 바꿔 state 에 저장
- *        - 모집 마감 요청에 원래 값이 필요하니 postDto 도 따로 저장해 둔다 (toCloseRecruitRequest)
- *   3. 조회수: 처음 들어올 때 increaseViewCount(postId) 를 1번만 호출
- *        - 상세 요청보다 먼저 보내야 화면에 올라간 조회수가 보인다 (await 후 getPost)
- *        - 실패해도 화면은 그대로 보여 준다 (catch 에서 무시)
- *        - reload(다시 시도) 때는 다시 올리지 않는다 → attempt 와 분리된 useEffect([postId]) 또는 ref 플래그
- *   4. addComment / removeComment
- *        - createComment(postId, content) / deleteComment(postId, commentId) 후 getComments 를 다시 불러
- *          post 의 comments 와 commentCount(= 댓글 수) 를 갱신
- *   5. closeRecruit
- *        - updatePost(postId, toCloseRecruitRequest(postDto)) → 응답 PostDto 로 post 를 다시 만든다 (댓글은 유지)
- *   6. removePost
- *        - deletePost(postId) 만 하면 된다. 뒤로 가기는 route 가 한다
- *   7. cancelled 플래그로 화면을 나간 뒤 늦게 온 응답은 무시한다
- */
+import { useEffect, useRef, useState } from 'react';
 
-export {};
+import { ApiError } from '@/api/client';
+
+import {
+  createComment,
+  deleteComment,
+  deletePost,
+  getComments,
+  getPost,
+  increaseViewCount,
+  updatePost,
+  type PostDto,
+} from '../api/communityApi';
+import type { CommunityPost } from '../types';
+import { toCloseRecruitRequest, toCommunityPost, toPostComment } from '../utils/postMapper';
+
+type Loaded = {
+  postId: string;
+  post: CommunityPost | null;
+  /** 모집 마감(PUT) 때 원래 값을 그대로 보내야 해서 서버 응답도 같이 둔다 */
+  dto: PostDto | null;
+  error: ApiError | null;
+};
+
+/**
+ * 게시글 상세 (게시글 + 댓글 + 상세 화면의 동작).
+ * 확인 대화상자·요청 중 표시·실패 문구·삭제 후 뒤로 가기는 route(src/app/community/[id].tsx)가 한다.
+ * 동작 함수들은 실패하면 throw 만 한다 (route 의 run() 이 잡아서 보여 준다).
+ * post 는 불러오는 중이면 null. 없는 글은 서버가 400 을 준다.
+ */
+export function usePost(postId: string) {
+  const [loaded, setLoaded] = useState<Loaded | null>(null);
+  const [attempt, setAttempt] = useState(0);
+  /** 조회수를 이미 올린 글. 다시 시도(reload) 때는 올리지 않는다 */
+  const viewedPostId = useRef<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const load = async () => {
+      // 조회수는 상세 요청보다 먼저 올려야 화면에 올라간 값이 보인다. 실패해도 화면은 보여 준다
+      if (viewedPostId.current !== postId) {
+        viewedPostId.current = postId;
+        await increaseViewCount(postId).catch(() => {});
+      }
+      const [dto, comments] = await Promise.all([getPost(postId), getComments(postId)]);
+      if (!cancelled) setLoaded({ postId, post: toCommunityPost(dto, comments), dto, error: null });
+    };
+
+    load().catch((e: unknown) => {
+      if (cancelled) return;
+      const error = e instanceof ApiError ? e : new ApiError('UNKNOWN', '게시글을 불러오지 못했어요.', 0);
+      setLoaded({ postId, post: null, dto: null, error });
+    });
+
+    return () => {
+      cancelled = true;
+    };
+    // attempt: 다시 시도 버튼
+  }, [postId, attempt]);
+
+  const current = loaded?.postId === postId ? loaded : null;
+
+  /** 댓글 작성·삭제 후 댓글 목록과 댓글 수를 다시 맞춘다 */
+  const refreshComments = async () => {
+    const comments = (await getComments(postId)).map(toPostComment);
+    setLoaded((prev) =>
+      prev?.postId === postId && prev.post
+        ? { ...prev, post: { ...prev.post, comments, commentCount: comments.length } }
+        : prev,
+    );
+  };
+
+  const addComment = async (content: string) => {
+    await createComment(postId, content);
+    await refreshComments();
+  };
+
+  const removeComment = async (commentId: string) => {
+    await deleteComment(postId, commentId);
+    await refreshComments();
+  };
+
+  /** 파티원 모집 글만 */
+  const closeRecruit = async () => {
+    if (current?.dto?.board !== 'PARTY') return;
+    const dto = await updatePost(postId, toCloseRecruitRequest(current.dto));
+    // 댓글은 그대로 둔다
+    setLoaded((prev) =>
+      prev?.postId === postId && prev.post
+        ? { ...prev, dto, post: { ...toCommunityPost(dto), comments: prev.post.comments } }
+        : prev,
+    );
+  };
+
+  const removePost = async () => {
+    await deletePost(postId);
+  };
+
+  return {
+    post: current?.post ?? null,
+    error: current?.error ?? null,
+    reload: () => setAttempt((n) => n + 1),
+    addComment,
+    removeComment,
+    closeRecruit,
+    removePost,
+  };
+}
